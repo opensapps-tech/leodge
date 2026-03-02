@@ -8,6 +8,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
     namespace "com.leodge"
+    enableProguardInReleaseBuilds = false
 
     defaultConfig {
         applicationId "com.leodge"
