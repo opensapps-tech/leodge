@@ -23,7 +23,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
 
       # ── 3. Java (Android requires JDK 17) ─────────────────────────────────────
       - name: Set up JDK 17
@@ -35,7 +34,7 @@ jobs:
 
       # ── 4. Install JS dependencies ────────────────────────────────────────────
       - name: Install Node dependencies
-        run: npm ci
+        run: npm install
 
       # ── 5. Cache Gradle ───────────────────────────────────────────────────────
       - name: Cache Gradle packages
@@ -82,7 +81,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -92,7 +90,7 @@ jobs:
           cache: 'gradle'
 
       - name: Install Node dependencies
-        run: npm ci
+        run: npm install
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
