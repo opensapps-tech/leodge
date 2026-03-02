@@ -47,7 +47,16 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
-
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.3'
+          
+      - name: Generate Gradle wrapper
+        working-directory: android
+        run: |
+            gradle wrapper --gradle-version 8.3
+    
       # ── 6. Make gradlew executable ────────────────────────────────────────────
       - name: Make gradlew executable
         run: chmod +x android/gradlew
