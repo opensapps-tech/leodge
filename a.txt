@@ -1,0 +1,743 @@
+ Volume in drive C is Windows-SSD
+ Volume Serial Number is E638-1372
+
+ Directory of C:\Users\Shivani\leodge
+
+02-03-2026  23:14    <DIR>          .
+02-03-2026  22:39    <DIR>          ..
+02-03-2026  22:25    <DIR>          .github
+02-03-2026  23:14                 0 a.txt
+02-03-2026  23:07    <DIR>          android
+02-03-2026  22:52            10,688 App.tsx
+02-03-2026  23:02             1,493 build.gradle.app
+02-03-2026  23:02               524 build.gradle.root
+02-03-2026  23:02               250 gradle-wrapper.properties
+02-03-2026  23:02               394 gradle.properties
+02-03-2026  22:52             1,055 package.json
+02-03-2026  23:02               235 proguard-rules.pro
+02-03-2026  23:02               380 settings.gradle
+02-03-2026  22:25                 0 tsconfig.json
+              10 File(s)         15,019 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git
+
+02-03-2026  23:14    <DIR>          ..
+02-03-2026  23:10                 2 COMMIT_EDITMSG
+02-03-2026  22:40               299 config
+02-03-2026  22:39                73 description
+02-03-2026  22:39                21 HEAD
+02-03-2026  22:39    <DIR>          hooks
+02-03-2026  23:10             2,233 index
+02-03-2026  22:39    <DIR>          info
+02-03-2026  22:40    <DIR>          logs
+02-03-2026  23:10    <DIR>          objects
+02-03-2026  22:40    <DIR>          refs
+               5 File(s)          2,628 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\hooks
+
+02-03-2026  22:39    <DIR>          .
+02-03-2026  22:39               478 applypatch-msg.sample
+02-03-2026  22:39               896 commit-msg.sample
+02-03-2026  22:39             4,726 fsmonitor-watchman.sample
+02-03-2026  22:39               189 post-update.sample
+02-03-2026  22:39               424 pre-applypatch.sample
+02-03-2026  22:39             1,649 pre-commit.sample
+02-03-2026  22:39               416 pre-merge-commit.sample
+02-03-2026  22:39             1,374 pre-push.sample
+02-03-2026  22:39             4,898 pre-rebase.sample
+02-03-2026  22:39               544 pre-receive.sample
+02-03-2026  22:39             1,492 prepare-commit-msg.sample
+02-03-2026  22:39             2,783 push-to-checkout.sample
+02-03-2026  22:39             2,308 sendemail-validate.sample
+02-03-2026  22:39             3,650 update.sample
+              14 File(s)         25,827 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\info
+
+02-03-2026  22:39    <DIR>          .
+02-03-2026  22:39               240 exclude
+               1 File(s)            240 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\logs
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  23:10             1,025 HEAD
+02-03-2026  22:40    <DIR>          refs
+               1 File(s)          1,025 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\logs\refs
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+02-03-2026  22:40    <DIR>          heads
+02-03-2026  22:40    <DIR>          remotes
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\logs\refs\heads
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+02-03-2026  23:10             1,025 main
+               1 File(s)          1,025 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\logs\refs\remotes
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+02-03-2026  22:40    <DIR>          origin
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\logs\refs\remotes\origin
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+02-03-2026  23:10             1,050 main
+               1 File(s)          1,050 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  23:04    <DIR>          02
+02-03-2026  23:10    <DIR>          05
+02-03-2026  23:04    <DIR>          08
+02-03-2026  22:54    <DIR>          0f
+02-03-2026  22:41    <DIR>          11
+02-03-2026  22:54    <DIR>          13
+02-03-2026  22:58    <DIR>          16
+02-03-2026  22:54    <DIR>          1e
+02-03-2026  22:54    <DIR>          21
+02-03-2026  22:41    <DIR>          24
+02-03-2026  22:41    <DIR>          27
+02-03-2026  22:41    <DIR>          28
+02-03-2026  22:54    <DIR>          2d
+02-03-2026  23:04    <DIR>          32
+02-03-2026  22:41    <DIR>          34
+02-03-2026  23:04    <DIR>          37
+02-03-2026  22:54    <DIR>          39
+02-03-2026  23:04    <DIR>          3d
+02-03-2026  22:58    <DIR>          42
+02-03-2026  22:56    <DIR>          46
+02-03-2026  23:04    <DIR>          4c
+02-03-2026  22:54    <DIR>          50
+02-03-2026  22:56    <DIR>          53
+02-03-2026  23:10    <DIR>          5b
+02-03-2026  23:04    <DIR>          60
+02-03-2026  22:56    <DIR>          63
+02-03-2026  23:10    <DIR>          68
+02-03-2026  22:58    <DIR>          6a
+02-03-2026  22:40    <DIR>          6c
+02-03-2026  22:54    <DIR>          70
+02-03-2026  22:54    <DIR>          72
+02-03-2026  22:54    <DIR>          76
+02-03-2026  22:41    <DIR>          78
+02-03-2026  23:04    <DIR>          79
+02-03-2026  22:58    <DIR>          7a
+02-03-2026  22:54    <DIR>          7d
+02-03-2026  23:04    <DIR>          7f
+02-03-2026  22:58    <DIR>          80
+02-03-2026  22:54    <DIR>          86
+02-03-2026  22:40    <DIR>          8b
+02-03-2026  23:04    <DIR>          8c
+02-03-2026  22:56    <DIR>          8e
+02-03-2026  22:54    <DIR>          98
+02-03-2026  23:04    <DIR>          a4
+02-03-2026  22:40    <DIR>          b1
+02-03-2026  22:41    <DIR>          b9
+02-03-2026  22:41    <DIR>          c0
+02-03-2026  22:41    <DIR>          c2
+02-03-2026  23:10    <DIR>          c8
+02-03-2026  23:04    <DIR>          cd
+02-03-2026  23:04    <DIR>          ce
+02-03-2026  23:04    <DIR>          d1
+02-03-2026  23:10    <DIR>          d7
+02-03-2026  22:56    <DIR>          d8
+02-03-2026  22:54    <DIR>          d9
+02-03-2026  22:54    <DIR>          dc
+02-03-2026  22:54    <DIR>          e0
+02-03-2026  23:04    <DIR>          e4
+02-03-2026  22:41    <DIR>          e6
+02-03-2026  22:41    <DIR>          f5
+02-03-2026  22:39    <DIR>          info
+02-03-2026  22:39    <DIR>          pack
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\02
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               122 a21185e8cfe5740acf25019caf8d8a41c2067e
+               1 File(s)            122 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\05
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:10                61 053f9c75cd39809ea14ee9d7df2118fcb4e7c5
+02-03-2026  23:04                60 539ef765a2f422e9b48d025c4113e54c1192e5
+               2 File(s)            121 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\08
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04             1,965 0ddd414c77121e0afc200be45e3d006836c701
+02-03-2026  22:41                61 7019d91742a3135db44c7b138802bf1bdc95ea
+               2 File(s)          2,026 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\0f
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               585 bb9258b0cbdc1c0d2016d228585fe422c8d039
+               1 File(s)            585 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\11
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                75 622230e0e070217a05b46d9deb64cdf963d186
+               1 File(s)             75 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\13
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54                45 a73bd23aacd7e51e4ad53f316624674bd8c04a
+               1 File(s)             45 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\16
+
+02-03-2026  22:58    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:58             1,061 e858412db198068b60fe46404dc886af42a830
+               1 File(s)          1,061 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\1e
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54                48 c012769c26efef37186781fe214bb9727b2d08
+               1 File(s)             48 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\21
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54             3,446 6c921126c8fee7967041adde87cfdcf982712e
+02-03-2026  22:41                51 eca0a28af2cb41971e0ba1610b6a12b1b6dbc4
+               2 File(s)          3,497 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\24
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                48 50846b8c6d6513569bf42df2475348ab967177
+               1 File(s)             48 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\27
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                88 47c9b4fec44bbca256d12e461f4939c3574352
+               1 File(s)             88 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\28
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                46 1ffe4c10e7de4b1f36d67f0ef38cf0d4942c9a
+               1 File(s)             46 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\2d
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               156 804eb25efd9595f547ffc12f3e83348d613e6c
+               1 File(s)            156 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\32
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               134 a5f2e76ea2e02deb50a3cf072038669a2af39d
+               1 File(s)            134 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\34
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41               147 b2d4f86bb071824192bacfb566238d8264045e
+               1 File(s)            147 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\37
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04                66 945edaf2268e520d014d4308d560eef297a1eb
+               1 File(s)             66 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\39
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               131 ad777d51cf39c6b09e5891924e4d4d691ff73b
+               1 File(s)            131 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\3d
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04                45 33f65e22107a7a7e7d7d8f7d56fcbd97fdf1b6
+               1 File(s)             45 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\42
+
+02-03-2026  22:58    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:58               187 10f62d25eae0eb2f01875db3ddfa9970245f8f
+               1 File(s)            187 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\46
+
+02-03-2026  22:56    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:56               156 22413e7e223fa64b4f2f8ed613d5bc837b67a0
+               1 File(s)            156 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\4c
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04                46 efd2098930256d8374055ddfe0347e3571890c
+               1 File(s)             46 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\50
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54                45 ad2e17e0c94fd9e22abd58616b49ea26cd3d89
+               1 File(s)             45 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\53
+
+02-03-2026  22:56    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:56               187 251f182874fab5f3cf87416bf12649633efba2
+               1 File(s)            187 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\5b
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:10                52 d124f0009ccf2f7aa07f84ba7a768081f1723d
+               1 File(s)             52 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\60
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04                45 0ff45c5fb42338ed0fca42bde19f50d8484971
+               1 File(s)             45 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\63
+
+02-03-2026  22:56    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               303 767049cef2f89fc3119275c398be485ed083e3
+02-03-2026  22:56             1,067 d7512ad27885ed71d44777782f81158b920729
+               2 File(s)          1,370 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\68
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:10             1,135 58b8120c57126389f9140e933843196cf2d030
+               1 File(s)          1,135 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\6a
+
+02-03-2026  22:58    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:58                62 f7f4ad25ef3a1d6dae54458c6ecf9bcf8fc5e0
+               1 File(s)             62 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\6c
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:40               125 6ee3f5925ac173bd5a871d2fe5a40e1ce36e18
+               1 File(s)            125 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\70
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               865 5f0e622dcfea65925ef3b2aafdf15b52a9af27
+               1 File(s)            865 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\72
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               122 445e1960787a24592a4d55a05a9ee4d24fefd0
+               1 File(s)            122 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\76
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               188 1877c016fa21de328f0cac12f797505b303ac0
+               1 File(s)            188 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\78
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                46 391fdf1c3f9a69c6642a5eba7a83a2a577b531
+               1 File(s)             46 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\79
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               238 817c40a4d1b8c882cd0148ac423b122fbaf258
+               1 File(s)            238 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\7a
+
+02-03-2026  22:58    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:58               155 0836291123f370cc62ea75282dd0b16433a7f3
+               1 File(s)            155 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\7d
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               230 84f1d392f575ac34a7b1481baec74e7e828bbf
+               1 File(s)            230 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\7f
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               288 eaa811880f5afa057e68b69510edb7f9c112cd
+               1 File(s)            288 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\80
+
+02-03-2026  22:58    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:58                51 206ea7fd5e8029f6e304a22f503650feb377df
+               1 File(s)             51 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\86
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               164 3eb251a5f63102584d5324a695796d9929f003
+02-03-2026  22:54                75 b81904e961a0061c61c343bb5be905e88ca26a
+               2 File(s)            239 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\8b
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:40                50 3d475c7b52d71bad2f34013493d562e7110c4e
+               1 File(s)             50 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\8c
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04                66 786ca1628f3078e587e81269a0e4f76b176584
+               1 File(s)             66 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\8e
+
+02-03-2026  22:56    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:56                51 fc95e6a12c15e1b21f2610ff8335c06f1817fb
+               1 File(s)             51 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\98
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               645 e8ecc0e4f3557c233b2faa5387991d78266aa5
+               1 File(s)            645 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\a4
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               627 ab12d9ff875b71ed929a4f153ba36ec7655551
+               1 File(s)            627 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\b1
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:40                20 b716105590454bfc4c0247f193a04088f39c7f
+               1 File(s)             20 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\b9
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                66 3cdcac5857c938ed587120b3505482a30e14e3
+               1 File(s)             66 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\c0
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                62 4df229bbc8a3f6647c01b16c48622eb06ce6c5
+               1 File(s)             62 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\c2
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                45 c5e7f5d1e503d8edde9923a98f9605bfa430b2
+               1 File(s)             45 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\c8
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:10               156 ee8013cce58afb6b6520f13d47d09abf0e7854
+               1 File(s)            156 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\cd
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54                45 8b6b7052b6ce7ad62334d8abe3768eba4fe63c
+02-03-2026  23:04               155 c0eb09d088be1a9443dfa0e6539f33ac10a113
+               2 File(s)            200 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\ce
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               272 4fb6ffe32407310061a6f0664871f0f5fcb5e0
+02-03-2026  22:41                45 ea47f08df294ad8d00bdecfb9014e7cd26de88
+               2 File(s)            317 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\d1
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               169 1cdd907dd9dc07fa143ea570a8f04a60ddd159
+               1 File(s)            169 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\d7
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:10               399 961533b71e9c99bb253bcf9a05e88c2d6afea2
+02-03-2026  23:04               107 a7c3fbd130e0157c5605a9e55c23122ad8351e
+02-03-2026  22:54               452 b19cca6201eb552a41d36f368f8a1478844547
+               3 File(s)            958 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\d8
+
+02-03-2026  22:56    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:56                61 45e38151b71c6c43fb184e09974c17102c8ac0
+               1 File(s)             61 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\d9
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               266 79e42527108b62c1aaabe1bbf03196edc36ab6
+               1 File(s)            266 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\dc
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54                46 36752205239d468f53facaec5519db97fde0cd
+02-03-2026  22:54               284 9aa7acf92795f382385ccc6d29dc97c6722232
+               2 File(s)            330 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\e0
+
+02-03-2026  22:54    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:54               411 5eb6db3ae8ca88d2665b6ea323a154e2104b5d
+               1 File(s)            411 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\e4
+
+02-03-2026  23:04    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  23:04               431 7b5d5ea417b6cc2a1037d9c737fe69137c006f
+               1 File(s)            431 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\e6
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41                15 9de29bb2d1d6434b8b29ae775ad8c2e48c5391
+02-03-2026  22:41               155 bc502ef2941ad8905a4847d2c721c9f86b4e5e
+               2 File(s)            170 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\f5
+
+02-03-2026  22:41    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+02-03-2026  22:41               123 0dea5e4382e084a1b09dc3e2abe754116c2f21
+               1 File(s)            123 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\info
+
+02-03-2026  22:39    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\objects\pack
+
+02-03-2026  22:39    <DIR>          .
+02-03-2026  23:10    <DIR>          ..
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\refs
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  23:10    <DIR>          heads
+02-03-2026  22:40    <DIR>          remotes
+02-03-2026  22:39    <DIR>          tags
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\refs\heads
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+02-03-2026  23:10                41 main
+               1 File(s)             41 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\refs\remotes
+
+02-03-2026  22:40    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+02-03-2026  23:10    <DIR>          origin
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\refs\remotes\origin
+
+02-03-2026  23:10    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+02-03-2026  23:10                41 main
+               1 File(s)             41 bytes
+
+ Directory of C:\Users\Shivani\leodge\.git\refs\tags
+
+02-03-2026  22:39    <DIR>          .
+02-03-2026  22:40    <DIR>          ..
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.github
+
+02-03-2026  22:25    <DIR>          .
+02-03-2026  23:14    <DIR>          ..
+02-03-2026  22:58    <DIR>          workflows
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\.github\workflows
+
+02-03-2026  22:58    <DIR>          .
+02-03-2026  22:25    <DIR>          ..
+02-03-2026  23:10             5,026 build-android.yml
+               1 File(s)          5,026 bytes
+
+ Directory of C:\Users\Shivani\leodge\android
+
+02-03-2026  23:07    <DIR>          .
+02-03-2026  23:14    <DIR>          ..
+02-03-2026  22:25    <DIR>          app
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app
+
+02-03-2026  22:25    <DIR>          .
+02-03-2026  23:07    <DIR>          ..
+02-03-2026  22:25    <DIR>          src
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src
+
+02-03-2026  22:25    <DIR>          .
+02-03-2026  22:25    <DIR>          ..
+02-03-2026  22:53    <DIR>          main
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main
+
+02-03-2026  22:53    <DIR>          .
+02-03-2026  22:25    <DIR>          ..
+02-03-2026  22:52             1,586 AndroidManifest.xml
+02-03-2026  22:25    <DIR>          java
+02-03-2026  23:01    <DIR>          res
+               1 File(s)          1,586 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main\java
+
+02-03-2026  22:25    <DIR>          .
+02-03-2026  22:53    <DIR>          ..
+02-03-2026  22:25    <DIR>          com
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main\java\com
+
+02-03-2026  22:25    <DIR>          .
+02-03-2026  22:25    <DIR>          ..
+02-03-2026  22:53    <DIR>          leodge
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main\java\com\leodge
+
+02-03-2026  22:53    <DIR>          .
+02-03-2026  22:25    <DIR>          ..
+02-03-2026  22:52               590 LeodgePackage.kt
+02-03-2026  22:52             2,268 LeodgeWidget.kt
+02-03-2026  22:52               591 LeodgeWidgetModule.kt
+02-03-2026  22:52             1,557 MainApplication.kt
+               4 File(s)          5,006 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main\res
+
+02-03-2026  23:01    <DIR>          .
+02-03-2026  22:53    <DIR>          ..
+02-03-2026  23:01    <DIR>          drawable
+02-03-2026  23:01    <DIR>          layout
+02-03-2026  23:01    <DIR>          xml
+               0 File(s)              0 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main\res\drawable
+
+02-03-2026  23:01    <DIR>          .
+02-03-2026  23:01    <DIR>          ..
+02-03-2026  22:52               347 widget_background.xml
+               1 File(s)            347 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main\res\layout
+
+02-03-2026  23:01    <DIR>          .
+02-03-2026  23:01    <DIR>          ..
+02-03-2026  22:52             1,139 widget_leodge.xml
+               1 File(s)          1,139 bytes
+
+ Directory of C:\Users\Shivani\leodge\android\app\src\main\res\xml
+
+02-03-2026  23:01    <DIR>          .
+02-03-2026  23:01    <DIR>          ..
+02-03-2026  22:52               529 leodge_widget_info.xml
+               1 File(s)            529 bytes
+
+     Total Files Listed:
+             115 File(s)         80,026 bytes
+             262 Dir(s)  291,166,638,080 bytes free
