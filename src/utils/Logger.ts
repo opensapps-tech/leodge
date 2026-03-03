@@ -18,7 +18,7 @@ class Logger {
   private isEnabled: boolean = true;
   private maxLogSize: number = 1000000; // 1MB max file size
   private buffer: string[] = [];
-  private flushInterval: number | null = null;
+  private flushInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     // Start periodic flush every 5 seconds
@@ -52,11 +52,12 @@ class Logger {
   }
 
   async log(level: LogLevel, tag: string, message: string, data?: any): Promise<void> {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {
+      return;
+    }
 
     let formattedMessage = this.formatMessage(level, tag, message);
-    
-    // Add data if provided
+
     if (data !== undefined) {
       if (data instanceof Error) {
         formattedMessage += `  Stack: ${data.stack}\n`;
@@ -65,25 +66,24 @@ class Logger {
         try {
           formattedMessage += `  Data: ${JSON.stringify(data, null, 2)}\n`;
         } catch (e) {
-          formattedMessage += `  Data: [Object cannot be stringified]\n`;
+          formattedMessage += '  Data: [Object cannot be stringified]\n';
         }
       } else {
         formattedMessage += `  Data: ${String(data)}\n`;
       }
     }
 
-    // Add to buffer
     this.buffer.push(formattedMessage);
 
-    // Also log to console
     console.log(formattedMessage);
 
-    // Write to native file
     await this.writeToNativeFile(formattedMessage);
   }
 
   async flush(): Promise<void> {
-    if (this.buffer.length === 0) return;
+    if (this.buffer.length === 0) {
+      return;
+    }
 
     const content = this.buffer.join('');
     this.buffer = [];

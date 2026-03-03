@@ -52,37 +52,58 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<number
     'Content-Type': 'application/json',
   });
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': authHeader,
-      'Content-Type': 'application/json',
-    },
-  });
+  // Create abort controller with 15 second timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-  await logger.info('API', `<<< RESPONSE: ${response.status} ${response.statusText}`);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    await logger.error('API', `HTTP Error: ${response.status}`, {
-      status: response.status,
-      statusText: response.statusText,
-      body: errorText,
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
     });
-    throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+
+    clearTimeout(timeoutId);
+
+    await logger.info('API', `<<< RESPONSE: ${response.status} ${response.statusText}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      await logger.error('API', `HTTP Error: ${response.status}`, {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText.substring(0, 500),
+      });
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    await logger.debug('API', 'Response data', data);
+
+    // Trading 212 account summary returns: { total: number, cash: number, result: number, ... }
+    const total = data.total || 0;
+    const cash = data.cash || 0;
+
+    await logger.info('API', `Portfolio fetched: total=${total}, cash=${cash}`);
+
+    return total;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+
+    if (error.name === 'AbortError') {
+      await logger.error('API', 'Request timeout after 15 seconds', {
+        url,
+        timeout: '15000ms',
+      });
+      throw new Error('Request timeout - API did not respond within 15 seconds. Check your internet connection and API credentials.');
+    }
+
+    throw error;
   }
-
-  const data = await response.json();
-
-  await logger.debug('API', 'Response data', data);
-
-  // Trading 212 account summary returns: { total: number, cash: number, result: number, ... }
-  const total = data.total || 0;
-  const cash = data.cash || 0;
-
-  await logger.info('API', `Portfolio fetched: total=${total}, cash=${cash}`);
-
-  return total;
 }
 
 // Update Android widget
