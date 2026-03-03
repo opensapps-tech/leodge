@@ -17,4 +17,8 @@ buildscript {
     }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+// Must use plugins {} block (not legacy apply plugin:) for plugins resolved
+// via includeBuild in pluginManagement — which is how RN ships its Gradle plugin.
+plugins {
+    id("com.facebook.react.rootproject")
+}
