@@ -1,4 +1,3 @@
-// android/app/src/main/java/com/leodge/MainActivity.kt
 package com.leodge
 
 import com.facebook.react.ReactActivity
