@@ -81,7 +81,9 @@ jobs:
       - name: Generate Gradle wrapper
         run: |
           cd android
-          gradle wrapper             --gradle-version="$GRADLE_VERSION"             --distribution-type=bin
+          gradle wrapper \
+            --gradle-version="$GRADLE_VERSION" \
+            --distribution-type=bin
           chmod +x gradlew
 
       # ── Gradle build cache ───────────────────────────────────────
@@ -109,16 +111,29 @@ jobs:
             -dname "CN=Android Debug,O=Android,C=US" \
             -noprompt
 
+      # ── Explicitly bundle JS into assets ────────────────────────
+      # This is the only reliable way to get JS into a CI-built APK.
+      # bundleInDebug=true in gradle.properties is NOT used — it is
+      # inconsistently honoured by the RN 0.75 Gradle plugin.
+      # Gradle finds the pre-built bundle in assets/ and skips its own
+      # (broken) bundling step automatically.
+      - name: Bundle JS into Android assets
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
       # ── Assemble Debug APK ───────────────────────────────────────
-      # bundleInDebug=true in gradle.properties means Gradle runs Metro
-      # bundler itself — no separate bundle step needed.
       - name: Assemble Debug APK
         run: |
           cd android
           ./gradlew assembleDebug \
             --no-daemon \
-            --stacktrace \
-            --info
+            --stacktrace
         env:
           CI: true
 
