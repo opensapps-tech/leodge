@@ -223,7 +223,7 @@ function App(): React.JSX.Element {
     } catch (error: any) {
       await logger.error('API', 'Portfolio fetch failed', error);
       
-      const errorDetails = formatErrorDetails(error);
+      const errorDetails = await formatErrorDetails(error);
       showDetailedError('API Error', errorDetails);
       
       setPollingStatus('error');
@@ -231,7 +231,7 @@ function App(): React.JSX.Element {
     }
   };
 
-  const formatErrorDetails = (error: any): string => {
+  const formatErrorDetails = async (error: any): Promise<string> => {
     let details = '';
     
     // Error message
