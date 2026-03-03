@@ -1,46 +1,561 @@
 /**
- * Root Application Component
+ * LEODGE - Trading 212 Portfolio Monitor
  * @format
  */
-
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
+  TextInput,
+  TouchableOpacity,
   View,
+  Alert,
+  Modal,
+  ScrollView,
+  Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeModules, NativeEventEmitter } from 'react-native';
+import logger, { LogLevel } from './src/utils/Logger';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+// Native module imports
+const { LeodgeWidgetModule, LeodgeLoggerModule } = NativeModules;
 
-import HomeScreen from '@/screens/HomeScreen';
+// Storage keys
+const STORAGE_KEYS = {
+  API_KEY: '@leodge_api_key',
+  API_SECRET: '@leodge_api_secret',
+};
+
+// Trading 212 API base URL
+const API_BASE_URL = 'https://api.trading212.com';
+
+// Fetch portfolio data from Trading 212 API
+async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<number> {
+  const url = `${API_BASE_URL}/v1/portfolio`;
+  
+  await logger.info('API', `>>> FETCH: GET ${url}`);
+  await logger.debug('API', 'Request headers', {
+    'X-Api-Key': apiKey.substring(0, 8) + '...',
+    'X-Api-Secret': apiSecret.substring(0, 8) + '...',
+    'Content-Type': 'application/json',
+  });
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'X-Api-Key': apiKey,
+      'X-Api-Secret': apiSecret,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  await logger.info('API', `<<< RESPONSE: ${response.status} ${response.statusText}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    await logger.error('API', `HTTP Error: ${response.status}`, {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+    });
+    throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  
+  await logger.debug('API', 'Response data', data);
+  
+  // Extract total value - sum of cash + equity
+  // Trading 212 returns: { cash: number, equity: number, total: number }
+  const cash = data.cash || 0;
+  const equity = data.equity || 0;
+  const total = data.total || cash + equity;
+  
+  await logger.info('API', `Portfolio calculated: cash=${cash}, equity=${equity}, total=${total}`);
+  
+  return total;
+}
+
+// Update Android widget
+async function updateWidget(totalValue: string): Promise<void> {
+  await logger.info('WIDGET', `Updating widget with value: £${totalValue}`);
+  
+  if (Platform.OS === 'android' && LeodgeWidgetModule) {
+    try {
+      await LeodgeWidgetModule.updateWidget(totalValue);
+      await logger.info('WIDGET', 'Widget update successful');
+    } catch (error: any) {
+      await logger.error('WIDGET', 'Widget update failed', error);
+    }
+  } else {
+    await logger.warn('WIDGET', 'Widget module not available');
+  }
+}
+
+// Get log file path
+async function getLogFilePath(): Promise<string> {
+  try {
+    if (LeodgeLoggerModule) {
+      return await LeodgeLoggerModule.getLogFilePath();
+    }
+  } catch (error) {
+    await logger.error('LOG', 'Failed to get log file path', error);
+  }
+  return 'Unknown';
+}
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const [apiKey, setApiKey] = useState('');
+  const [apiSecret, setApiSecret] = useState('');
+  const [portfolioValue, setPortfolioValue] = useState<number | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [pollingStatus, setPollingStatus] = useState<'idle' | 'polling' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [detailedError, setDetailedError] = useState<string>('');
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-    flex: 1,
+  // Initialize logger on mount
+  useEffect(() => {
+    const init = async () => {
+      await logger.onAppStart();
+      const logPath = await getLogFilePath();
+      await logger.info('LOG', `Log file location: ${logPath}`);
+    };
+    init();
+    
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    loadSavedCredentials();
+  }, []);
+
+  // Start polling when credentials are saved
+  useEffect(() => {
+    if (apiKey && apiSecret && pollingStatus === 'idle') {
+      // Initial fetch
+      fetchPortfolioData();
+      // Start polling every 60 seconds
+      pollingIntervalRef.current = setInterval(fetchPortfolioData, 60000);
+      logger.onPollingStart();
+    }
+    
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [apiKey, apiSecret, pollingStatus]);
+
+  const loadSavedCredentials = async () => {
+    await logger.info('CRED', 'Loading saved credentials from AsyncStorage');
+    try {
+      const savedApiKey = await AsyncStorage.getItem(STORAGE_KEYS.API_KEY);
+      const savedApiSecret = await AsyncStorage.getItem(STORAGE_KEYS.API_SECRET);
+      if (savedApiKey && savedApiSecret) {
+        setApiKey(savedApiKey);
+        setApiSecret(savedApiSecret);
+        await logger.info('CRED', 'Credentials loaded successfully');
+      } else {
+        await logger.info('CRED', 'No saved credentials found');
+      }
+    } catch (error: any) {
+      await logger.error('CRED', 'Failed to load credentials', error);
+    }
+  };
+
+  const saveCredentials = async () => {
+    await logger.info('CRED', 'Attempting to save credentials');
+    
+    if (!apiKey.trim() || !apiSecret.trim()) {
+      const errMsg = 'Please enter both API Key and API Secret';
+      await logger.warn('CRED', errMsg);
+      showDetailedError('Validation Error', errMsg);
+      return;
+    }
+    
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.API_KEY, apiKey.trim());
+      await AsyncStorage.setItem(STORAGE_KEYS.API_SECRET, apiSecret.trim());
+      await logger.onCredentialsSaved();
+      setPollingStatus('idle');
+    } catch (error: any) {
+      await logger.error('CRED', 'Failed to save credentials', error);
+      showDetailedError('Storage Error', `Failed to save credentials: ${error.message}`);
+    }
+  };
+
+  const fetchPortfolioData = async () => {
+    await logger.onPollingTick();
+    
+    if (!apiKey || !apiSecret) {
+      await logger.warn('API', 'Cannot fetch - missing credentials');
+      return;
+    }
+
+    setPollingStatus('polling');
+    setErrorMessage(null);
+
+    try {
+      await logger.info('API', 'Starting portfolio fetch...');
+      
+      const value = await fetchPortfolio(apiKey, apiSecret);
+      
+      await logger.info('API', `Portfolio fetch successful: £${value}`);
+      
+      setPortfolioValue(value);
+      setLastUpdated(new Date());
+      setPollingStatus('polling');
+      setErrorMessage(null);
+      
+      // Update widget
+      await updateWidget(value.toFixed(2));
+    } catch (error: any) {
+      await logger.error('API', 'Portfolio fetch failed', error);
+      
+      const errorDetails = formatErrorDetails(error);
+      showDetailedError('API Error', errorDetails);
+      
+      setPollingStatus('error');
+      setErrorMessage(error.message || 'Failed to fetch portfolio');
+    }
+  };
+
+  const formatErrorDetails = (error: any): string => {
+    let details = '';
+    
+    // Error message
+    details += `Message: ${error.message || 'Unknown error'}\n\n`;
+    
+    // Error stack trace
+    if (error.stack) {
+      details += `Stack Trace:\n${error.stack}\n\n`;
+    }
+    
+    // Additional context
+    details += `Context:\n`;
+    details += `- API URL: ${API_BASE_URL}/v1/portfolio\n`;
+    details += `- API Key: ${apiKey.substring(0, 8)}...\n`;
+    details += `- Timestamp: ${new Date().toISOString()}\n`;
+    details += `- Platform: ${Platform.OS}\n`;
+    details += `- Log File: ${await getLogFilePath()}\n`;
+    
+    return details;
+  };
+
+  const showDetailedError = (title: string, details: string) => {
+    setDetailedError(details);
+    setShowErrorModal(true);
+  };
+
+  const formatCurrency = (value: number): string => {
+    return `£${value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <HomeScreen />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Title */}
+        <Text style={styles.title}>LEODGE</Text>
+        <Text style={styles.subtitle}>Trading 212 Portfolio Monitor</Text>
+
+        {/* Credentials Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>API Credentials</Text>
+          
+          <TextInput
+            style={styles.input}
+            placeholder="API Key"
+            placeholderTextColor="#666"
+            value={apiKey}
+            onChangeText={setApiKey}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="API Secret"
+            placeholderTextColor="#666"
+            value={apiSecret}
+            onChangeText={setApiSecret}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          
+          <TouchableOpacity style={styles.saveButton} onPress={saveCredentials}>
+            <Text style={styles.saveButtonText}>Save Credentials</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Portfolio Value Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Portfolio Value</Text>
+          
+          <Text style={styles.portfolioValue}>
+            {portfolioValue !== null ? formatCurrency(portfolioValue) : '£--'}
+          </Text>
+          
+          <View style={styles.statusRow}>
+            <View style={styles.statusItem}>
+              <Text style={styles.statusLabel}>Last Updated</Text>
+              <Text style={styles.statusValue}>
+                {lastUpdated ? formatTime(lastUpdated) : '--'}
+              </Text>
+            </View>
+            
+            <View style={styles.statusItem}>
+              <Text style={styles.statusLabel}>Status</Text>
+              <View style={styles.statusIndicator}>
+                <View style={[
+                  styles.statusDot,
+                  pollingStatus === 'polling' && styles.statusDotActive,
+                  pollingStatus === 'error' && styles.statusDotError,
+                ]} />
+                <Text style={[
+                  styles.statusValue,
+                  pollingStatus === 'error' && styles.statusValueError,
+                ]}>
+                  {pollingStatus === 'idle' ? 'Ready' : 
+                   pollingStatus === 'polling' ? 'Polling' : 'Error'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {errorMessage && (
+            <TouchableOpacity 
+              style={styles.errorButton}
+              onPress={() => setShowErrorModal(true)}
+            >
+              <Text style={styles.errorButtonText}>View Error Details</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Manual Refresh Button */}
+        <TouchableOpacity 
+          style={[styles.refreshButton, pollingStatus === 'polling' && styles.refreshButtonDisabled]}
+          onPress={fetchPortfolioData}
+          disabled={pollingStatus === 'polling' || !apiKey || !apiSecret}
+        >
+          <Text style={styles.refreshButtonText}>
+            {pollingStatus === 'polling' ? 'Fetching...' : 'Refresh Now'}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Error Modal */}
+      <Modal
+        visible={showErrorModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowErrorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Error Details</Text>
+            <ScrollView style={styles.errorScrollView}>
+              <Text style={styles.errorText}>{detailedError}</Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  scrollContent: {
+    padding: 20,
+    paddingTop: 40,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#00d4aa',
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 30,
+  },
+  section: {
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: '#0f0f23',
+    borderRadius: 8,
+    padding: 12,
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  saveButton: {
+    backgroundColor: '#00d4aa',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  saveButtonText: {
+    color: '#1a1a2e',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  portfolioValue: {
+    fontSize: 42,
+    fontWeight: 'bold',
+    color: '#00d4aa',
+    textAlign: 'center',
+    marginVertical: 16,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  statusItem: {
+    alignItems: 'center',
+  },
+  statusLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  statusValue: {
+    fontSize: 14,
+    color: '#fff',
+  },
+  statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#666',
+    marginRight: 6,
+  },
+  statusDotActive: {
+    backgroundColor: '#00d4aa',
+  },
+  statusDotError: {
+    backgroundColor: '#ff4444',
+  },
+  statusValueError: {
+    color: '#ff4444',
+  },
+  errorButton: {
+    backgroundColor: '#ff4444',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  errorButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  refreshButton: {
+    backgroundColor: '#333',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  refreshButtonDisabled: {
+    opacity: 0.5,
+  },
+  refreshButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    padding: 20,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ff4444',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  errorScrollView: {
+    maxHeight: 400,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ccc',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    lineHeight: 18,
+  },
+  modalCloseButton: {
+    backgroundColor: '#00d4aa',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  modalCloseButtonText: {
+    color: '#1a1a2e',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
 
 export default App;

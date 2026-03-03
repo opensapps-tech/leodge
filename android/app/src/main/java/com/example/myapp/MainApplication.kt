@@ -22,9 +22,10 @@ class MainApplication : Application(), ReactApplication {
     override val reactNativeHost: ReactNativeHost =
         object : DefaultReactNativeHost(this) {
             override fun getPackages(): List<ReactPackage> =
-                PackageList(this).packages
-                // Add your custom native packages here if needed:
-                // packages.add(MyReactNativePackage())
+                PackageList(this).packages.apply {
+                    // Add custom native package for widget
+                    add(LeodgePackage())
+                }
 
             override fun getJSMainModuleName(): String = "index"
 
