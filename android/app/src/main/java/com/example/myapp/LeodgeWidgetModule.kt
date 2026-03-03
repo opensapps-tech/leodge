@@ -1,7 +1,9 @@
 package com.example.myapp
 
 import android.content.Context
+import android.content.ComponentName
 import android.content.SharedPreferences
+import android.appwidget.AppWidgetManager
 import com.facebook.react.bridge.*
 import com.facebook.react.module.annotations.ReactModule
 
@@ -26,14 +28,14 @@ class LeodgeWidgetModule(private val reactContext: ReactApplicationContext) :
             prefs.edit().putString(KEY_PORTFOLIO_VALUE, totalValue).apply()
             
             // Notify the widget to update
+            val appWidgetManager = AppWidgetManager.getInstance(reactContext)
+            val componentName = ComponentName(reactContext, LeodgeWidget::class.java)
+            val ids = appWidgetManager.getAppWidgetIds(componentName)
+            
             val intent = android.content.Intent(reactContext, LeodgeWidget::class.java).apply {
-                action = "android.appwidget.action.APPWIDGET_UPDATE"
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
             }
-            val ids = android.appwidget.AppWidgetManager.getInstance(reactContext)
-                .getAppWidgetIds(android.componentType.LeodgeWidget::class.java.name.let { 
-                    android.content.ComponentName(reactContext, LeodgeWidget::class.java) 
-                })
-            intent.putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
             reactContext.sendBroadcast(intent)
             
             promise.resolve(true)

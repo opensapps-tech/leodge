@@ -6,12 +6,13 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.widget.RemoteViews
 
+// Constants accessible outside the class
+private const val PREFS_NAME = "LeodgeWidgetPrefs"
+private const val KEY_PORTFOLIO_VALUE = "portfolio_value"
+
 class LeodgeWidget : AppWidgetProvider() {
     
     companion object {
-        private const val PREFS_NAME = "LeodgeWidgetPrefs"
-        private const val KEY_PORTFOLIO_VALUE = "portfolio_value"
-        
         fun getSharedPreferences(context: Context): SharedPreferences {
             return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         }
