@@ -27,17 +27,7 @@ class LeodgeWidget : AppWidgetProvider() {
     }
 
     companion object {
-        fun updateAllWidgets(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(
-                android.content.ComponentName(context, LeodgeWidget::class.java)
-            )
-            for (appWidgetId in appWidgetIds) {
-                updateAppWidget(context, appWidgetManager, appWidgetId)
-            }
-        }
-
-        private fun updateAppWidget(
+        fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
