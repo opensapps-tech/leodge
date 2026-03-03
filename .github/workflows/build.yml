@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────────
 #  GitHub Actions — React Native Android Build Pipeline
 #  App: Leodge
-#  Bundle ID: com.ssb.leodge
+#  Bundle ID: com.example.leodge
 #
 #  Triggers on every push to any branch.
 #  Downloads debug APK from the Actions "Artifacts" tab.
@@ -65,23 +65,19 @@ jobs:
       # ── Bootstrap Gradle wrapper ─────────────────────────────────
       #   We generate the wrapper in CI so we don't need to commit
       #   the binary gradle-wrapper.jar to the repository.
-      - name: Install Gradle {} (for wrapper bootstrap)
+      - name: Install Gradle (for wrapper bootstrap)
         run: |
-          GRADLE_VERSION=$(grep "distributionUrl" android/gradle/wrapper/gradle-wrapper.properties \
-            | sed 's/.*gradle-\(.*\)-bin.zip/\1/')
+          GRADLE_VERSION=$(grep "distributionUrl" android/gradle/wrapper/gradle-wrapper.properties             | sed 's/.*gradle-\(.*\)-bin.zip/\1/')
           echo "Bootstrapping Gradle $GRADLE_VERSION"
-          wget -q "https://services.gradle.org/distributions/gradle-${{GRADLE_VERSION}}-bin.zip" \
-            -O /tmp/gradle.zip
+          wget -q "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip"             -O /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /opt/gradle
-          echo "/opt/gradle/gradle-${{GRADLE_VERSION}}/bin" >> $GITHUB_PATH
-          echo "GRADLE_VERSION=${{GRADLE_VERSION}}" >> $GITHUB_ENV
+          echo "/opt/gradle/gradle-$GRADLE_VERSION/bin" >> $GITHUB_PATH
+          echo "GRADLE_VERSION=$GRADLE_VERSION" >> $GITHUB_ENV
 
       - name: Generate Gradle wrapper
         run: |
           cd android
-          gradle wrapper \
-            --gradle-version="${{env.GRADLE_VERSION}}" \
-            --distribution-type=bin
+          gradle wrapper             --gradle-version="$GRADLE_VERSION"             --distribution-type=bin
           chmod +x gradlew
 
       # ── Gradle build cache ───────────────────────────────────────
@@ -136,9 +132,8 @@ jobs:
         run: |
           APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -1)
           echo "Found APK: $APK"
-          SHA=${{ github.sha[:7] }}
-          BRANCH=${{ github.ref_name }}
-          DEST="android/app/build/outputs/apk/debug/leodge-debug-${{SHA}}.apk"
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          DEST="android/app/build/outputs/apk/debug/leodge-debug-$SHA.apk"
           mv "$APK" "$DEST"
           echo "APK_PATH=$DEST" >> $GITHUB_ENV
           ls -lh "$DEST"
@@ -161,7 +156,7 @@ jobs:
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| App | Leodge |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bundle ID | com.ssb.leodge |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle ID | com.example.leodge |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY

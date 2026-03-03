@@ -1,4 +1,4 @@
-package com.ssb.leodge
+package com.example.leodge
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

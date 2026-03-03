@@ -1,4 +1,4 @@
-package com.ssb.leodge
+package com.example.leodge
 
 import android.app.Application
 import com.facebook.react.PackageList
