@@ -4,7 +4,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 project.ext.react = [
-    bundleInDebug: true
+    bundleInDebug: false
 ]
 
 android {
