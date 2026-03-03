@@ -109,18 +109,9 @@ jobs:
             -dname "CN=Android Debug,O=Android,C=US" \
             -noprompt
 
-      # ── React Native Metro bundler pre-check ─────────────────────
-      - name: Validate JS bundle (dry run)
-        run: |
-          npx react-native bundle \
-            --platform android \
-            --dev false \
-            --entry-file index.js \
-            --bundle-output /tmp/main.bundle \
-            --assets-dest /tmp/assets \
-            2>&1 | tail -20
-
       # ── Assemble Debug APK ───────────────────────────────────────
+      # bundleInDebug=true in gradle.properties means Gradle runs Metro
+      # bundler itself — no separate bundle step needed.
       - name: Assemble Debug APK
         run: |
           cd android
