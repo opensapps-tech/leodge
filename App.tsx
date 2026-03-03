@@ -29,25 +29,33 @@ const STORAGE_KEYS = {
   API_SECRET: '@leodge_api_secret',
 };
 
-// Trading 212 API base URL
-const API_BASE_URL = 'https://api.trading212.com';
+// Trading 212 API configuration
+// Use live.trading212.com for real trading or demo.trading212.com for testing
+const API_BASE_URL = 'https://live.trading212.com';
+
+// Helper function to create Basic Auth header
+function createBasicAuthHeader(apiKey: string, apiSecret: string): string {
+  const credentials = `${apiKey}:${apiSecret}`;
+  const base64Credentials = btoa(credentials);
+  return `Basic ${base64Credentials}`;
+}
 
 // Fetch portfolio data from Trading 212 API
 async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<number> {
-  const url = `${API_BASE_URL}/v1/portfolio`;
-  
+  const url = `${API_BASE_URL}/api/v0/equity/account/summary`;
+
+  const authHeader = createBasicAuthHeader(apiKey, apiSecret);
+
   await logger.info('API', `>>> FETCH: GET ${url}`);
   await logger.debug('API', 'Request headers', {
-    'X-Api-Key': apiKey.substring(0, 8) + '...',
-    'X-Api-Secret': apiSecret.substring(0, 8) + '...',
+    'Authorization': 'Basic [REDACTED]',
     'Content-Type': 'application/json',
   });
 
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      'X-Api-Key': apiKey,
-      'X-Api-Secret': apiSecret,
+      'Authorization': authHeader,
       'Content-Type': 'application/json',
     },
   });
@@ -65,17 +73,15 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<number
   }
 
   const data = await response.json();
-  
+
   await logger.debug('API', 'Response data', data);
-  
-  // Extract total value - sum of cash + equity
-  // Trading 212 returns: { cash: number, equity: number, total: number }
+
+  // Trading 212 account summary returns: { total: number, cash: number, result: number, ... }
+  const total = data.total || 0;
   const cash = data.cash || 0;
-  const equity = data.equity || 0;
-  const total = data.total || cash + equity;
-  
-  await logger.info('API', `Portfolio calculated: cash=${cash}, equity=${equity}, total=${total}`);
-  
+
+  await logger.info('API', `Portfolio fetched: total=${total}, cash=${cash}`);
+
   return total;
 }
 
@@ -244,7 +250,7 @@ function App(): React.JSX.Element {
     
     // Additional context
     details += `Context:\n`;
-    details += `- API URL: ${API_BASE_URL}/v1/portfolio\n`;
+    details += `- API URL: ${API_BASE_URL}/api/v0/equity/account/summary\n`;
     details += `- API Key: ${apiKey.substring(0, 8)}...\n`;
     details += `- Timestamp: ${new Date().toISOString()}\n`;
     details += `- Platform: ${Platform.OS}\n`;
