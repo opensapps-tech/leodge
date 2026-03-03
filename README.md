@@ -88,7 +88,7 @@ If you want to run locally, you'll need:
 - Android Studio / Android SDK
 
 ```bash
-npm ci
+npm install
 npx react-native run-android
 ```
 

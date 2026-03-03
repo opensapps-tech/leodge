@@ -56,7 +56,7 @@ jobs:
       # ── Install JS dependencies ──────────────────────────────────
       # Run install BEFORE caching so the lock file exists for hashing.
       - name: Install JavaScript dependencies
-        run: npm ci
+        run: npm install
 
       # ── Cache node_modules for subsequent runs ────────────────────
       - name: Cache node_modules
