@@ -1,0 +1,169 @@
+# ─────────────────────────────────────────────────────────────────
+#  GitHub Actions — React Native Android Build Pipeline
+#  App: Leodge
+#  Bundle ID: com.ssb.leodge
+#
+#  Triggers on every push to any branch.
+#  Downloads debug APK from the Actions "Artifacts" tab.
+#
+#  No Android Studio, Gradle, or Node needed locally.
+# ─────────────────────────────────────────────────────────────────
+
+name: Android Build
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:          # allow manual trigger from GitHub UI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true   # cancel stale builds on new pushes
+
+jobs:
+  build-android:
+    name: 🤖 Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Java 17 (required for AGP 8+) ───────────────────────────
+      - name: Set up Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # ── Node 20 LTS ─────────────────────────────────────────────
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── npm / yarn cache ─────────────────────────────────────────
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json', 'yarn.lock') }}
+          restore-keys: node-modules-
+
+      # ── Install JS dependencies ──────────────────────────────────
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      # ── Bootstrap Gradle wrapper ─────────────────────────────────
+      #   We generate the wrapper in CI so we don't need to commit
+      #   the binary gradle-wrapper.jar to the repository.
+      - name: Install Gradle {} (for wrapper bootstrap)
+        run: |
+          GRADLE_VERSION=$(grep "distributionUrl" android/gradle/wrapper/gradle-wrapper.properties \
+            | sed 's/.*gradle-\(.*\)-bin.zip/\1/')
+          echo "Bootstrapping Gradle $GRADLE_VERSION"
+          wget -q "https://services.gradle.org/distributions/gradle-${{GRADLE_VERSION}}-bin.zip" \
+            -O /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt/gradle
+          echo "/opt/gradle/gradle-${{GRADLE_VERSION}}/bin" >> $GITHUB_PATH
+          echo "GRADLE_VERSION=${{GRADLE_VERSION}}" >> $GITHUB_ENV
+
+      - name: Generate Gradle wrapper
+        run: |
+          cd android
+          gradle wrapper \
+            --gradle-version="${{env.GRADLE_VERSION}}" \
+            --distribution-type=bin
+          chmod +x gradlew
+
+      # ── Gradle build cache ───────────────────────────────────────
+      - name: Cache Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      # ── Debug keystore ───────────────────────────────────────────
+      #   Generated fresh each run (only used for debug builds).
+      #   For release builds, set up RELEASE_KEYSTORE_PATH secret.
+      - name: Generate debug keystore
+        run: |
+          cd android/app
+          keytool -genkey -v \
+            -keystore debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -noprompt
+
+      # ── React Native Metro bundler pre-check ─────────────────────
+      - name: Validate JS bundle (dry run)
+        run: |
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output /tmp/main.bundle \
+            --assets-dest /tmp/assets \
+            2>&1 | tail -20
+
+      # ── Assemble Debug APK ───────────────────────────────────────
+      - name: Assemble Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug \
+            --no-daemon \
+            --stacktrace \
+            --info
+        env:
+          CI: true
+
+      # ── Find & rename APK ────────────────────────────────────────
+      - name: Locate and rename APK
+        run: |
+          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -1)
+          echo "Found APK: $APK"
+          SHA=${{ github.sha[:7] }}
+          BRANCH=${{ github.ref_name }}
+          DEST="android/app/build/outputs/apk/debug/leodge-debug-${{SHA}}.apk"
+          mv "$APK" "$DEST"
+          echo "APK_PATH=$DEST" >> $GITHUB_ENV
+          ls -lh "$DEST"
+
+      # ── Upload APK as workflow artifact ──────────────────────────
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: "leodge-debug-apk-${{ github.run_number }}"
+          path: ${{ env.APK_PATH }}
+          retention-days: 30
+          if-no-files-found: error
+
+      # ── Build summary ────────────────────────────────────────────
+      - name: Post build summary
+        if: success()
+        run: |
+          echo "## ✅ Build Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| App | Leodge |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle ID | com.ssb.leodge |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the APK from the **Artifacts** section above ⬆️" >> $GITHUB_STEP_SUMMARY

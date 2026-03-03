@@ -31,40 +31,40 @@ local.properties
 *.keystore
 !debug.keystore
 
-# node.js
+# Node
 node_modules/
 npm-debug.log
 yarn-error.log
 
-# BUCK
-buck-out/
-\.buckd/
-*.keystore
-!debug.keystore
+# Watchman
+.watchmanconfig
 
-# fastlane
-**/fastlane/report.xml
-**/fastlane/Preview.html
-**/fastlane/screenshots
-**/fastlane/test_output
+# Fastlane
+*/fastlane/report.xml
+*/fastlane/Preview.html
+*/fastlane/screenshots
+*/fastlane/test_output
 
 # Bundle artifact
 *.jsbundle
 
-# CocoaPods
+# Ruby / CocoaPods
 /ios/Pods/
+/vendor/bundle/
 
-# Temporary files created by Metro to check if the port
-# is available.
+# Temporary files created by Metro
 .metro-health-check*
 
-# testing
+# Testing
 /coverage
 
-# Yarn
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
+# Environment
+.env
+.env.local
+.env.production
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo

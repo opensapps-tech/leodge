@@ -1,0 +1,9 @@
+<resources>
+    <!--
+        Base application theme. Using NoActionBar so React Native can
+        manage the full screen layout including the status bar.
+    -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- React Native handles the window background -->
+    </style>
+</resources>
