@@ -14,10 +14,10 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk        rootProject.ext.compileSdkVersion
 
-    namespace "com.example.leodge"
+    namespace "com.example.myapp"
 
     defaultConfig {
-        applicationId   "com.example.leodge"
+        applicationId   "com.example.myapp"
         minSdk          rootProject.ext.minSdkVersion
         targetSdk       rootProject.ext.targetSdkVersion
         versionCode     1

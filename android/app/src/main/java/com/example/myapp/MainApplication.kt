@@ -1,4 +1,4 @@
-package com.example.leodge
+package com.example.myapp
 
 import android.app.Application
 import com.facebook.react.PackageList

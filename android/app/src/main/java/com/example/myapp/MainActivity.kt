@@ -1,4 +1,4 @@
-package com.example.leodge
+package com.example.myapp
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -17,7 +17,7 @@ class MainActivity : ReactActivity() {
      * Returns the name of the main component registered in JavaScript.
      * Used to schedule rendering of the component.
      */
-    override fun getMainComponentName(): String = "Leodge"
+    override fun getMainComponentName(): String = "MyApp"
 
     /**
      * Creates the React Activity Delegate.

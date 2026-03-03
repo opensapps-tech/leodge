@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────────
 #  GitHub Actions — React Native Android Build Pipeline
-#  App: Leodge
-#  Bundle ID: com.example.leodge
+#  App: MyApp
+#  Bundle ID: com.example.myapp
 #
 #  Triggers on every push to any branch.
 #  Downloads debug APK from the Actions "Artifacts" tab.
@@ -44,23 +44,27 @@ jobs:
           cache: gradle
 
       # ── Node 20 LTS ─────────────────────────────────────────────
+      # Note: no 'cache:' here — setup-node's built-in caching requires a
+      # lock file to exist at checkout time, which won't be true on the first
+      # push of a freshly generated repo. We cache node_modules explicitly
+      # with actions/cache after install instead.
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      # ── npm / yarn cache ─────────────────────────────────────────
+      # ── Install JS dependencies ──────────────────────────────────
+      # Run install BEFORE caching so the lock file exists for hashing.
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      # ── Cache node_modules for subsequent runs ────────────────────
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
           key: node-modules-${{ hashFiles('package-lock.json', 'yarn.lock') }}
           restore-keys: node-modules-
-
-      # ── Install JS dependencies ──────────────────────────────────
-      - name: Install JavaScript dependencies
-        run: npm ci
 
       # ── Bootstrap Gradle wrapper ─────────────────────────────────
       #   We generate the wrapper in CI so we don't need to commit
@@ -133,7 +137,7 @@ jobs:
           APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -1)
           echo "Found APK: $APK"
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          DEST="android/app/build/outputs/apk/debug/leodge-debug-$SHA.apk"
+          DEST="android/app/build/outputs/apk/debug/myapp-debug-$SHA.apk"
           mv "$APK" "$DEST"
           echo "APK_PATH=$DEST" >> $GITHUB_ENV
           ls -lh "$DEST"
@@ -142,7 +146,7 @@ jobs:
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: "leodge-debug-apk-${{ github.run_number }}"
+          name: "myapp-debug-apk-${{ github.run_number }}"
           path: ${{ env.APK_PATH }}
           retention-days: 30
           if-no-files-found: error
@@ -155,8 +159,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| App | Leodge |" >> $GITHUB_STEP_SUMMARY
-          echo "| Bundle ID | com.example.leodge |" >> $GITHUB_STEP_SUMMARY
+          echo "| App | MyApp |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle ID | com.example.myapp |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY

@@ -18,7 +18,7 @@ const HomeScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <Text style={[styles.title, {color: isDarkMode ? Colors.white : Colors.black}]}>
-            👋 Hello, Leodge!
+            👋 Hello, MyApp!
           </Text>
           <Text style={[styles.subtitle, {color: isDarkMode ? Colors.light : Colors.dark}]}>
             Your React Native Android app is live.
