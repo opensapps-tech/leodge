@@ -2,7 +2,7 @@
  * LEODGE - Trading 212 Portfolio Monitor
  * @format
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -11,14 +11,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Alert,
   Modal,
   ScrollView,
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NativeModules, NativeEventEmitter } from 'react-native';
-import logger, { LogLevel } from './src/utils/Logger';
+import { NativeModules } from 'react-native';
+import logger from './src/utils/Logger';
 
 // Native module imports
 const { LeodgeWidgetModule, LeodgeLoggerModule } = NativeModules;
@@ -30,7 +29,6 @@ const STORAGE_KEYS = {
 };
 
 // Trading 212 API configuration
-// Use live.trading212.com for real trading or demo.trading212.com for testing
 const API_BASE_URL = 'https://live.trading212.com';
 
 // Helper function to create Basic Auth header
@@ -41,18 +39,13 @@ function createBasicAuthHeader(apiKey: string, apiSecret: string): string {
 }
 
 // Fetch portfolio data from Trading 212 API
-async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<number> {
+async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ total: number; rawJson: string }> {
   const url = `${API_BASE_URL}/api/v0/equity/account/summary`;
-
   const authHeader = createBasicAuthHeader(apiKey, apiSecret);
-
+  
   await logger.info('API', `>>> FETCH: GET ${url}`);
-  await logger.debug('API', 'Request headers', {
-    'Authorization': 'Basic [REDACTED]',
-    'Content-Type': 'application/json',
-  });
+  await logger.info('API', `Auth: Basic ${apiKey.substring(0, 4)}...`);
 
-  // Create abort controller with 15 second timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -67,41 +60,39 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<number
     });
 
     clearTimeout(timeoutId);
-
-    await logger.info('API', `<<< RESPONSE: ${response.status} ${response.statusText}`);
+    
+    const statusInfo = `Status: ${response.status} ${response.statusText}`;
+    await logger.info('API', `<<< RESPONSE: ${statusInfo}`);
+    await logger.info('API', `Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      await logger.error('API', `HTTP Error: ${response.status}`, {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText.substring(0, 500),
-      });
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      await logger.error('API', `HTTP Error: ${response.status}`, { body: errorText });
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
     }
 
-    const data = await response.json();
+    // Get raw response text first
+    const rawText = await response.text();
+    await logger.info('API', `Raw response (${rawText.length} chars): ${rawText.substring(0, 500)}`);
+    
+    // Then parse as JSON
+    const data = JSON.parse(rawText);
+    await logger.debug('API', 'Parsed JSON data', data);
 
-    await logger.debug('API', 'Response data', data);
-
-    // Trading 212 account summary returns: { total: number, cash: number, result: number, ... }
-    const total = data.total || 0;
-    const cash = data.cash || 0;
-
-    await logger.info('API', `Portfolio fetched: total=${total}, cash=${cash}`);
-
-    return total;
+    // Trading 212 account summary returns: { total: number, cash: number, ... }
+    const total = data.total ?? data.balance ?? 0;
+    const cash = data.cash ?? 0;
+    
+    await logger.info('API', `Portfolio extracted: total=${total}, cash=${cash}`);
+    
+    return { total, rawJson: rawText };
   } catch (error: any) {
     clearTimeout(timeoutId);
-
     if (error.name === 'AbortError') {
-      await logger.error('API', 'Request timeout after 15 seconds', {
-        url,
-        timeout: '15000ms',
-      });
-      throw new Error('Request timeout - API did not respond within 15 seconds. Check your internet connection and API credentials.');
+      await logger.error('API', 'Request timeout after 15 seconds');
+      throw new Error('Request timeout - API did not respond within 15 seconds');
     }
-
+    await logger.error('API', 'Fetch failed', error);
     throw error;
   }
 }
@@ -109,7 +100,6 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<number
 // Update Android widget
 async function updateWidget(totalValue: string): Promise<void> {
   await logger.info('WIDGET', `Updating widget with value: £${totalValue}`);
-  
   if (Platform.OS === 'android' && LeodgeWidgetModule) {
     try {
       await LeodgeWidgetModule.updateWidget(totalValue);
@@ -117,8 +107,6 @@ async function updateWidget(totalValue: string): Promise<void> {
     } catch (error: any) {
       await logger.error('WIDGET', 'Widget update failed', error);
     }
-  } else {
-    await logger.warn('WIDGET', 'Widget module not available');
   }
 }
 
@@ -142,67 +130,74 @@ function App(): React.JSX.Element {
   const [pollingStatus, setPollingStatus] = useState<'idle' | 'polling' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
-  const [detailedError, setDetailedError] = useState<string>('');
+  const [detailedError, setDetailedError] = useState('');
+  const [rawJson, setRawJson] = useState('');
+  
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isPollingStarted = useRef(false);
+  const credentialsLoaded = useRef(false);
 
   // Initialize logger on mount
   useEffect(() => {
     const init = async () => {
       await logger.onAppStart();
       const logPath = await getLogFilePath();
-      await logger.info('LOG', `Log file location: ${logPath}`);
+      await logger.info('LOG', `Log file: ${logPath}`);
     };
     init();
-    
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
   }, []);
 
   // Load saved credentials on mount
   useEffect(() => {
-    loadSavedCredentials();
+    const loadSaved = async () => {
+      await logger.info('CRED', 'Loading saved credentials...');
+      try {
+        const savedApiKey = await AsyncStorage.getItem(STORAGE_KEYS.API_KEY);
+        const savedApiSecret = await AsyncStorage.getItem(STORAGE_KEYS.API_SECRET);
+        if (savedApiKey && savedApiSecret) {
+          setApiKey(savedApiKey);
+          setApiSecret(savedApiSecret);
+          await logger.info('CRED', 'Credentials loaded from storage');
+          credentialsLoaded.current = true;
+        } else {
+          await logger.info('CRED', 'No saved credentials found');
+        }
+      } catch (error: any) {
+        await logger.error('CRED', 'Failed to load credentials', error);
+      }
+    };
+    loadSaved();
   }, []);
 
-  // Start polling when credentials are saved
+  // Start polling when credentials become available
   useEffect(() => {
-    if (apiKey && apiSecret && pollingStatus === 'idle') {
-      // Initial fetch
-      fetchPortfolioData();
-      // Start polling every 60 seconds
-      pollingIntervalRef.current = setInterval(fetchPortfolioData, 60000);
-      logger.onPollingStart();
-    }
+    const startPolling = async () => {
+      if (apiKey && apiSecret && !isPollingStarted.current) {
+        isPollingStarted.current = true;
+        await logger.info('POLL', `Starting polling - API key: ${apiKey.substring(0, 4)}...`);
+        
+        // Initial fetch
+        fetchPortfolioData();
+        
+        // Start interval
+        pollingIntervalRef.current = setInterval(fetchPortfolioData, 60000);
+        await logger.info('POLL', 'Polling interval started (60s)');
+      }
+    };
+    
+    startPolling();
     
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
+        logger.info('POLL', 'Polling stopped');
       }
     };
-  }, [apiKey, apiSecret, pollingStatus]);
-
-  const loadSavedCredentials = async () => {
-    await logger.info('CRED', 'Loading saved credentials from AsyncStorage');
-    try {
-      const savedApiKey = await AsyncStorage.getItem(STORAGE_KEYS.API_KEY);
-      const savedApiSecret = await AsyncStorage.getItem(STORAGE_KEYS.API_SECRET);
-      if (savedApiKey && savedApiSecret) {
-        setApiKey(savedApiKey);
-        setApiSecret(savedApiSecret);
-        await logger.info('CRED', 'Credentials loaded successfully');
-      } else {
-        await logger.info('CRED', 'No saved credentials found');
-      }
-    } catch (error: any) {
-      await logger.error('CRED', 'Failed to load credentials', error);
-    }
-  };
+  }, [apiKey, apiSecret]);
 
   const saveCredentials = async () => {
-    await logger.info('CRED', 'Attempting to save credentials');
+    await logger.info('CRED', 'Saving credentials...');
     
     if (!apiKey.trim() || !apiSecret.trim()) {
       const errMsg = 'Please enter both API Key and API Secret';
@@ -215,18 +210,20 @@ function App(): React.JSX.Element {
       await AsyncStorage.setItem(STORAGE_KEYS.API_KEY, apiKey.trim());
       await AsyncStorage.setItem(STORAGE_KEYS.API_SECRET, apiSecret.trim());
       await logger.onCredentialsSaved();
-      setPollingStatus('idle');
+      // Force re-render to trigger polling start
+      setApiKey(apiKey.trim());
+      setApiSecret(apiSecret.trim());
     } catch (error: any) {
       await logger.error('CRED', 'Failed to save credentials', error);
-      showDetailedError('Storage Error', `Failed to save credentials: ${error.message}`);
+      showDetailedError('Storage Error', `Failed: ${error.message}`);
     }
   };
 
-  const fetchPortfolioData = async () => {
-    await logger.onPollingTick();
+  const fetchPortfolioData = useCallback(async () => {
+    await logger.info('POLL', '=== Fetch cycle started ===');
     
     if (!apiKey || !apiSecret) {
-      await logger.warn('API', 'Cannot fetch - missing credentials');
+      await logger.warn('POLL', 'No credentials, skipping fetch');
       return;
     }
 
@@ -234,48 +231,47 @@ function App(): React.JSX.Element {
     setErrorMessage(null);
 
     try {
-      await logger.info('API', 'Starting portfolio fetch...');
+      const { total, rawJson } = await fetchPortfolio(apiKey, apiSecret);
       
-      const value = await fetchPortfolio(apiKey, apiSecret);
+      await logger.info('POLL', `Success! Total: £${total}`);
       
-      await logger.info('API', `Portfolio fetch successful: £${value}`);
-      
-      setPortfolioValue(value);
+      setPortfolioValue(total);
+      setRawJson(rawJson);
       setLastUpdated(new Date());
       setPollingStatus('polling');
       setErrorMessage(null);
       
       // Update widget
-      await updateWidget(value.toFixed(2));
+      await updateWidget(total.toFixed(2));
+      
+      await logger.info('POLL', '=== Fetch cycle complete ===');
     } catch (error: any) {
-      await logger.error('API', 'Portfolio fetch failed', error);
+      await logger.error('POLL', 'Fetch failed', error);
       
       const errorDetails = await formatErrorDetails(error);
       showDetailedError('API Error', errorDetails);
       
       setPollingStatus('error');
-      setErrorMessage(error.message || 'Failed to fetch portfolio');
+      setErrorMessage(error.message || 'Failed');
+      await logger.info('POLL', '=== Fetch cycle failed ===');
     }
-  };
+  }, [apiKey, apiSecret]);
 
   const formatErrorDetails = async (error: any): Promise<string> => {
     let details = '';
     
-    // Error message
     details += `Message: ${error.message || 'Unknown error'}\n\n`;
     
-    // Error stack trace
     if (error.stack) {
       details += `Stack Trace:\n${error.stack}\n\n`;
     }
     
-    // Additional context
     details += `Context:\n`;
     details += `- API URL: ${API_BASE_URL}/api/v0/equity/account/summary\n`;
-    details += `- API Key: ${apiKey.substring(0, 8)}...\n`;
+    details += `- Auth: Basic ${apiKey.substring(0, 8)}...\n`;
     details += `- Timestamp: ${new Date().toISOString()}\n`;
     details += `- Platform: ${Platform.OS}\n`;
-    details += `- Log File: ${await getLogFilePath()}\n`;
+    details += `- Log: ${await getLogFilePath()}\n`;
     
     return details;
   };
@@ -376,6 +372,16 @@ function App(): React.JSX.Element {
           )}
         </View>
 
+        {/* Raw JSON Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Raw API Response</Text>
+          <ScrollView style={styles.rawJsonContainer}>
+            <Text style={styles.rawJsonText}>
+              {rawJson || 'No data yet - press refresh to fetch'}
+            </Text>
+          </ScrollView>
+        </View>
+
         {/* Manual Refresh Button */}
         <TouchableOpacity 
           style={[styles.refreshButton, pollingStatus === 'polling' && styles.refreshButtonDisabled]}
@@ -415,174 +421,39 @@ function App(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#00d4aa',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 30,
-  },
-  section: {
-    backgroundColor: '#16213e',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  input: {
-    backgroundColor: '#0f0f23',
-    borderRadius: 8,
-    padding: 12,
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  saveButton: {
-    backgroundColor: '#00d4aa',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  saveButtonText: {
-    color: '#1a1a2e',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  portfolioValue: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#00d4aa',
-    textAlign: 'center',
-    marginVertical: 16,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 8,
-  },
-  statusItem: {
-    alignItems: 'center',
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 4,
-  },
-  statusValue: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#666',
-    marginRight: 6,
-  },
-  statusDotActive: {
-    backgroundColor: '#00d4aa',
-  },
-  statusDotError: {
-    backgroundColor: '#ff4444',
-  },
-  statusValueError: {
-    color: '#ff4444',
-  },
-  errorButton: {
-    backgroundColor: '#ff4444',
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  errorButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  refreshButton: {
-    backgroundColor: '#333',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  refreshButtonDisabled: {
-    opacity: 0.5,
-  },
-  refreshButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#16213e',
-    borderRadius: 12,
-    padding: 20,
-    width: '100%',
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ff4444',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  errorScrollView: {
-    maxHeight: 400,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#ccc',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    lineHeight: 18,
-  },
-  modalCloseButton: {
-    backgroundColor: '#00d4aa',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  modalCloseButtonText: {
-    color: '#1a1a2e',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  scrollContent: { padding: 20, paddingTop: 40 },
+  title: { fontSize: 36, fontWeight: 'bold', color: '#00d4aa', textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#888', textAlign: 'center', marginTop: 4, marginBottom: 30 },
+  section: { backgroundColor: '#16213e', borderRadius: 12, padding: 16, marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 12 },
+  input: { backgroundColor: '#0f0f23', borderRadius: 8, padding: 12, color: '#fff', fontSize: 14, marginBottom: 12, borderWidth: 1, borderColor: '#333' },
+  saveButton: { backgroundColor: '#00d4aa', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 4 },
+  saveButtonText: { color: '#1a1a2e', fontSize: 16, fontWeight: '600' },
+  portfolioValue: { fontSize: 42, fontWeight: 'bold', color: '#00d4aa', textAlign: 'center', marginVertical: 16 },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
+  statusItem: { alignItems: 'center' },
+  statusLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
+  statusValue: { fontSize: 14, color: '#fff' },
+  statusIndicator: { flexDirection: 'row', alignItems: 'center' },
+  statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#666', marginRight: 6 },
+  statusDotActive: { backgroundColor: '#00d4aa' },
+  statusDotError: { backgroundColor: '#ff4444' },
+  statusValueError: { color: '#ff4444' },
+  errorButton: { backgroundColor: '#ff4444', borderRadius: 8, padding: 10, alignItems: 'center', marginTop: 12 },
+  errorButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  rawJsonContainer: { backgroundColor: '#0f0f23', borderRadius: 8, padding: 12, maxHeight: 150 },
+  rawJsonText: { fontSize: 11, color: '#00ff00', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  refreshButton: { backgroundColor: '#333', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  refreshButtonDisabled: { opacity: 0.5 },
+  refreshButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#16213e', borderRadius: 12, padding: 20, width: '100%', maxHeight: '80%' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#ff4444', marginBottom: 16, textAlign: 'center' },
+  errorScrollView: { maxHeight: 400 },
+  errorText: { fontSize: 12, color: '#ccc', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 18 },
+  modalCloseButton: { backgroundColor: '#00d4aa', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
+  modalCloseButtonText: { color: '#1a1a2e', fontSize: 16, fontWeight: '600' },
 });
 
 export default App;
