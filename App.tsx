@@ -39,7 +39,7 @@ function createBasicAuthHeader(apiKey: string, apiSecret: string): string {
 }
 
 // Fetch portfolio data from Trading 212 API
-async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ total: number; rawJson: string }> {
+async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ total: number; cash: number; invested: number; rawJson: string }> {
   const url = `${API_BASE_URL}/api/v0/equity/account/summary`;
   const authHeader = createBasicAuthHeader(apiKey, apiSecret);
   
@@ -79,10 +79,10 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ tota
     await logger.debug('API', 'Parsed JSON data', data);
     // Trading 212 account summary returns: { total: number, cash: {availableToTrade}, investments: {currentValue} }
     const total = data?.totalValue ?? data?.total ?? data?.balance ?? 0;
-    const cash = "0"; // Cash disabled for now
-    const invested = "0"; // Invested disabled for now
+    const cash = data?.cash?.availableToTrade ?? 0;
+    const invested = data?.investments?.currentValue ?? 0;
     await logger.info('API', `Portfolio extracted: total=${total}, cash=${cash}, invested=${invested}`);
-    return { total, rawJson: rawText };
+    return { total, cash, invested, rawJson };
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
@@ -227,7 +227,7 @@ function App(): React.JSX.Element {
     setErrorMessage(null);
 
     try {
-      const { total, rawJson } = await fetchPortfolio(apiKey, apiSecret);
+      const { total, cash, invested, rawJson } = await fetchPortfolio(apiKey, apiSecret);
       
       await logger.info('POLL', `Success! Total: £${total}`);
       
