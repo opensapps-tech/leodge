@@ -81,7 +81,8 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ tota
 
     // Trading 212 account summary returns: { total: number, cash: number, ... }
     const total = data.totalValue ?? data.total ?? data.balance ?? 0;
-    const cash = data.cash ?? 0;
+    const cash = data.cash?.availableToTrade ?? 0;
+    const invested = data.investments?.currentValue ?? data.investments?.totalCost ?? 0;
     
     await logger.info('API', `Portfolio extracted: total=${total}, cash=${cash}`);
     
@@ -98,12 +99,11 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ tota
 }
 
 // Update Android widget
-async function updateWidget(totalValue: string): Promise<void> {
+async function updateWidget(totalValue: string, cash: string, invested: string, updated: string): Promise<void> {
   await logger.info('WIDGET', `Updating widget with value: £${totalValue}`);
   if (Platform.OS === 'android' && LeodgeWidgetModule) {
     try {
-      await LeodgeWidgetModule.updateWidget(totalValue);
-      await logger.info('WIDGET', 'Widget update successful');
+      await LeodgeWidgetModule.updateWidget(totalValue, cash, invested, updated);
     } catch (error: any) {
       await logger.error('WIDGET', 'Widget update failed', error);
     }
@@ -242,7 +242,12 @@ function App(): React.JSX.Element {
       setErrorMessage(null);
       
       // Update widget
-      await updateWidget(total.toFixed(2));
+      await updateWidget(
+      total.toFixed(2),
+      cash.toFixed(2),
+      invested.toFixed(2),
+      new Date().toLocaleTimeString()
+    );
       
       await logger.info('POLL', '=== Fetch cycle complete ===');
     } catch (error: any) {

@@ -14,7 +14,10 @@ class LeodgeWidgetModule(private val reactContext: ReactApplicationContext) :
     companion object {
         const val NAME = "LeodgeWidgetModule"
         private const val PREFS_NAME = "LeodgeWidgetPrefs"
-        private const val KEY_PORTFOLIO_VALUE = "portfolio_value"
+        private const val KEY_TOTAL_VALUE = "total_value"
+        private const val KEY_CASH = "cash"
+        private const val KEY_INVESTED = "invested"
+        private const val KEY_UPDATED = "updated"
     }
 
     private val prefs: SharedPreferences by lazy {
@@ -22,10 +25,15 @@ class LeodgeWidgetModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun updateWidget(totalValue: String, promise: Promise) {
+    fun updateWidget(totalValue: String, cash: String, invested: String, updated: String, promise: Promise) {
         try {
-            // Save the value to SharedPreferences
-            prefs.edit().putString(KEY_PORTFOLIO_VALUE, totalValue).apply()
+            // Save all values to SharedPreferences
+            prefs.edit()
+                .putString(KEY_TOTAL_VALUE, totalValue)
+                .putString(KEY_CASH, cash)
+                .putString(KEY_INVESTED, invested)
+                .putString(KEY_UPDATED, updated)
+                .apply()
             
             // Notify the widget to update
             val appWidgetManager = AppWidgetManager.getInstance(reactContext)

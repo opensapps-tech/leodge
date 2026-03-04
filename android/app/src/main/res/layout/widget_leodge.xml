@@ -3,17 +3,117 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/black"
-    android:padding="16dp"
+    android:background="@drawable/widget_background"
+    android:padding="12dp"
     android:gravity="center">
 
+    <!-- Header Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="LEODGE"
+            android:textColor="#00d4aa"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/widget_refresh"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:background="@android:color/transparent"
+            android:scaleType="fitCenter"
+            android:contentDescription="Refresh" />
+
+    </LinearLayout>
+
+    <!-- Portfolio Value -->
     <TextView
-        android:id="@+id/widget_text"
+        android:id="@+id/widget_value"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="LEODGE £ --"
-        android:textColor="#00d4aa"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:text="£ --"
+        android:textColor="#ffffff"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginTop="4dp" />
+
+    <!-- Details Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:gravity="center">
+
+        <!-- Cash -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CASH"
+                android:textColor="#888888"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/widget_cash"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="£0.00"
+                android:textColor="#00d4aa"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+        <!-- Investments -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INVESTED"
+                android:textColor="#888888"
+                android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/widget_invested"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="£0.00"
+                android:textColor="#00d4aa"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Last Updated -->
+    <TextView
+        android:id="@+id/widget_updated"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Last updated: --"
+        android:textColor="#666666"
+        android:textSize="10sp"
+        android:layout_marginTop="8dp" />
 
 </LinearLayout>
