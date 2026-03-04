@@ -73,19 +73,15 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ tota
 
     // Get raw response text first
     const rawText = await response.text();
+    await logger.info('API', `Raw response raw: [${rawText.substring(0, 100)}]`);
     await logger.info('API', `Raw response (${rawText.length} chars): ${rawText.substring(0, 500)}`);
-    
-    // Then parse as JSON
     const data = JSON.parse(rawText);
     await logger.debug('API', 'Parsed JSON data', data);
-
-    // Trading 212 account summary returns: { total: number, cash: number, ... }
+    // Trading 212 account summary returns: { total: number, cash: {availableToTrade}, investments: {currentValue} }
     const total = data.totalValue ?? data.total ?? data.balance ?? 0;
     const cash = data.cash?.availableToTrade ?? 0;
     const invested = data.investments?.currentValue ?? data.investments?.totalCost ?? 0;
-    
-    await logger.info('API', `Portfolio extracted: total=${total}, cash=${cash}`);
-    
+    await logger.info('API', `Portfolio extracted: total=${total}, cash=${cash}, invested=${invested}`);
     return { total, rawJson: rawText };
   } catch (error: any) {
     clearTimeout(timeoutId);
