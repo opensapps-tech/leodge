@@ -80,7 +80,7 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ tota
     await logger.debug('API', 'Parsed JSON data', data);
 
     // Trading 212 account summary returns: { total: number, cash: number, ... }
-    const total = data.total ?? data.balance ?? 0;
+    const total = data.totalValue ?? data.total ?? data.balance ?? 0;
     const cash = data.cash ?? 0;
     
     await logger.info('API', `Portfolio extracted: total=${total}, cash=${cash}`);
