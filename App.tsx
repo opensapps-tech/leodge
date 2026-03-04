@@ -82,7 +82,7 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ tota
     const cash = data?.cash?.availableToTrade ?? 0;
     const invested = data?.investments?.currentValue ?? 0;
     await logger.info('API', `Portfolio extracted: total=${total}, cash=${cash}, invested=${invested}`);
-    return { total, cash, invested, rawJson };
+    return { total, cash, invested, rawJson: rawText };
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
