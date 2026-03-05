@@ -52,5 +52,35 @@ class LeodgeWidgetModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
+    @ReactMethod
+    fun startBackgroundService(apiKey: String, apiSecret: String, promise: Promise) {
+        try {
+            LeodgeWidgetService.startService(reactContext, apiKey, apiSecret)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SERVICE_ERROR", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun stopBackgroundService(promise: Promise) {
+        try {
+            LeodgeWidgetService.stopService(reactContext)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("SERVICE_ERROR", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun isBackgroundServiceRunning(promise: Promise) {
+        try {
+            val isRunning = LeodgeWidgetService.isServiceRunning(reactContext)
+            promise.resolve(isRunning)
+        } catch (e: Exception) {
+            promise.reject("SERVICE_ERROR", e.message, e)
+        }
+    }
+
     override fun getName(): String = NAME
 }

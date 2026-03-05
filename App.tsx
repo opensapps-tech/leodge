@@ -128,6 +128,7 @@ function App(): React.JSX.Element {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [detailedError, setDetailedError] = useState('');
   const [rawJson, setRawJson] = useState('');
+  const [backgroundServiceRunning, setBackgroundServiceRunning] = useState(false);
   
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isPollingStarted = useRef(false);
@@ -139,6 +140,17 @@ function App(): React.JSX.Element {
       await logger.onAppStart();
       const logPath = await getLogFilePath();
       await logger.info('LOG', `Log file: ${logPath}`);
+      
+      // Check if background service is running
+      if (Platform.OS === 'android' && LeodgeWidgetModule) {
+        try {
+          const isRunning = await LeodgeWidgetModule.isBackgroundServiceRunning();
+          setBackgroundServiceRunning(isRunning);
+          await logger.info('SERVICE', `Background service running: ${isRunning}`);
+        } catch (error) {
+          await logger.error('SERVICE', 'Failed to check service status', error);
+        }
+      }
     };
     init();
   }, []);
@@ -172,10 +184,21 @@ function App(): React.JSX.Element {
         isPollingStarted.current = true;
         await logger.info('POLL', `Starting polling - API key: ${apiKey.substring(0, 4)}...`);
         
+        // Start background service on Android
+        if (Platform.OS === 'android' && LeodgeWidgetModule) {
+          try {
+            await LeodgeWidgetModule.startBackgroundService(apiKey, apiSecret);
+            setBackgroundServiceRunning(true);
+            await logger.info('SERVICE', 'Background service started');
+          } catch (error) {
+            await logger.error('SERVICE', 'Failed to start background service', error);
+          }
+        }
+        
         // Initial fetch
         fetchPortfolioData();
         
-        // Start interval
+        // Start interval (for app UI updates)
         pollingIntervalRef.current = setInterval(fetchPortfolioData, 60000);
         await logger.info('POLL', 'Polling interval started (60s)');
       }
@@ -212,6 +235,30 @@ function App(): React.JSX.Element {
     } catch (error: any) {
       await logger.error('CRED', 'Failed to save credentials', error);
       showDetailedError('Storage Error', `Failed: ${error.message}`);
+    }
+  };
+
+  const toggleBackgroundService = async () => {
+    if (Platform.OS !== 'android' || !LeodgeWidgetModule) {
+      await logger.warn('SERVICE', 'Background service only available on Android');
+      return;
+    }
+
+    try {
+      if (backgroundServiceRunning) {
+        await LeodgeWidgetModule.stopBackgroundService();
+        setBackgroundServiceRunning(false);
+        await logger.info('SERVICE', 'Background service stopped');
+      } else if (apiKey && apiSecret) {
+        await LeodgeWidgetModule.startBackgroundService(apiKey, apiSecret);
+        setBackgroundServiceRunning(true);
+        await logger.info('SERVICE', 'Background service started');
+      } else {
+        showDetailedError('Service Error', 'Please save credentials first');
+      }
+    } catch (error) {
+      await logger.error('SERVICE', 'Failed to toggle background service', error);
+      showDetailedError('Service Error', `Failed: ${error}`);
     }
   };
 
@@ -327,6 +374,43 @@ function App(): React.JSX.Element {
             <Text style={styles.saveButtonText}>Save Credentials</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Background Service Control (Android only) */}
+        {Platform.OS === 'android' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Background Service</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>Service Status</Text>
+                <View style={styles.statusIndicator}>
+                  <View style={[
+                    styles.statusDot,
+                    backgroundServiceRunning && styles.statusDotActive,
+                  ]} />
+                  <Text style={styles.statusValue}>
+                    {backgroundServiceRunning ? 'Running' : 'Stopped'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={[
+                styles.serviceButton,
+                backgroundServiceRunning ? styles.serviceButtonStop : styles.serviceButtonStart
+              ]}
+              onPress={toggleBackgroundService}
+            >
+              <Text style={styles.serviceButtonText}>
+                {backgroundServiceRunning ? 'Stop Background Service' : 'Start Background Service'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.serviceDescription}>
+              {backgroundServiceRunning 
+                ? 'Widget will update automatically every 60 seconds, even when app is closed'
+                : 'Start this service to keep your widget updated when app is closed'}
+            </Text>
+          </View>
+        )}
 
         {/* Portfolio Value Section */}
         <View style={styles.section}>
@@ -448,6 +532,11 @@ const styles = StyleSheet.create({
   refreshButton: { backgroundColor: '#333', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
   refreshButtonDisabled: { opacity: 0.5 },
   refreshButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  serviceButton: { borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 12 },
+  serviceButtonStart: { backgroundColor: '#00d4aa' },
+  serviceButtonStop: { backgroundColor: '#ff4444' },
+  serviceButtonText: { color: '#1a1a2e', fontSize: 16, fontWeight: '600' },
+  serviceDescription: { fontSize: 12, color: '#888', textAlign: 'center', marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { backgroundColor: '#16213e', borderRadius: 12, padding: 20, width: '100%', maxHeight: '80%' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#ff4444', marginBottom: 16, textAlign: 'center' },
