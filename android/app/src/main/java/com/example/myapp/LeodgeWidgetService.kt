@@ -55,7 +55,7 @@ class LeodgeWidgetService : Service() {
             prefs.edit()
                 .putString(KEY_API_KEY, apiKey)
                 .putString(KEY_API_SECRET, apiSecret)
-                .apply()
+                .commit() // Use commit() instead of apply() to ensure it's written before starting service
 
             val intent = Intent(context, LeodgeWidgetService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -145,7 +145,7 @@ class LeodgeWidgetService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("LEODGE Widget Active")
             .setContentText("Portfolio monitoring running in background")
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(android.R.drawable.ic_menu_info_details)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -162,7 +162,9 @@ class LeodgeWidgetService : Service() {
                 }
             }
         }
-        handler.post(pollingRunnable!!)
+        pollingRunnable?.let {
+            handler.post(it)
+        }
     }
 
     private fun stopPolling() {

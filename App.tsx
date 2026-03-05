@@ -184,19 +184,23 @@ function App(): React.JSX.Element {
         isPollingStarted.current = true;
         await logger.info('POLL', `Starting polling - API key: ${apiKey.substring(0, 4)}...`);
         
-        // Start background service on Android
-        if (Platform.OS === 'android' && LeodgeWidgetModule) {
-          try {
-            await LeodgeWidgetModule.startBackgroundService(apiKey, apiSecret);
-            setBackgroundServiceRunning(true);
-            await logger.info('SERVICE', 'Background service started');
-          } catch (error) {
-            await logger.error('SERVICE', 'Failed to start background service', error);
+        // Initial fetch first
+        try {
+          await fetchPortfolioData();
+          
+          // Start background service on Android (after first fetch completes)
+          if (Platform.OS === 'android' && LeodgeWidgetModule) {
+            try {
+              await LeodgeWidgetModule.startBackgroundService(apiKey, apiSecret);
+              setBackgroundServiceRunning(true);
+              await logger.info('SERVICE', 'Background service started');
+            } catch (error) {
+              await logger.error('SERVICE', 'Failed to start background service', error);
+            }
           }
+        } catch (error) {
+          await logger.error('POLL', 'Initial fetch failed, service not started', error);
         }
-        
-        // Initial fetch
-        fetchPortfolioData();
         
         // Start interval (for app UI updates)
         pollingIntervalRef.current = setInterval(fetchPortfolioData, 60000);
