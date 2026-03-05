@@ -48,32 +48,64 @@ class LeodgeWidgetService : Service() {
         private const val KEY_CASH = "cash"
         private const val KEY_INVESTED = "invested"
         private const val KEY_UPDATED = "updated"
+        private const val KEY_SERVICE_RUNNING = "service_running"
 
         fun startService(context: Context, apiKey: String, apiSecret: String) {
-            // Save credentials for the service
+            Log.d(TAG, "Starting service...")
+
+            // Save credentials and mark service as running
             val prefs = context.getSharedPreferences(PREFS_CREDENTIALS, Context.MODE_PRIVATE)
             prefs.edit()
                 .putString(KEY_API_KEY, apiKey)
                 .putString(KEY_API_SECRET, apiSecret)
-                .commit() // Use commit() instead of apply() to ensure it's written before starting service
+                .putBoolean(KEY_SERVICE_RUNNING, true)
+                .commit() // Use commit() to ensure it's written before starting service
 
             val intent = Intent(context, LeodgeWidgetService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
+                Log.d(TAG, "Started foreground service")
             } else {
                 context.startService(intent)
+                Log.d(TAG, "Started service (pre-O)")
             }
         }
 
         fun stopService(context: Context) {
+            Log.d(TAG, "Stopping service...")
+
+            // Clear service running flag but keep credentials
+            val prefs = context.getSharedPreferences(PREFS_CREDENTIALS, Context.MODE_PRIVATE)
+            prefs.edit()
+                .putBoolean(KEY_SERVICE_RUNNING, false)
+                .commit()
+
             val intent = Intent(context, LeodgeWidgetService::class.java)
             context.stopService(intent)
+            Log.d(TAG, "Service stop command sent")
         }
 
         fun isServiceRunning(context: Context): Boolean {
-            // Check if credentials are saved (service was started)
+            // Check if service is marked as running
             val prefs = context.getSharedPreferences(PREFS_CREDENTIALS, Context.MODE_PRIVATE)
-            return prefs.contains(KEY_API_KEY)
+            val isMarkedRunning = prefs.getBoolean(KEY_SERVICE_RUNNING, false)
+            Log.d(TAG, "Service running flag: $isMarkedRunning")
+            
+            // Try to verify service is actually alive by checking notification
+            if (isMarkedRunning && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                try {
+                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                    val activeNotifications = notificationManager?.activeNotifications
+                    val hasNotification = activeNotifications?.any { it.id == NOTIFICATION_ID } == true
+                    Log.d(TAG, "Service notification check: $hasNotification")
+                    return hasNotification == true
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to verify service status", e)
+                    // If we can't verify, return the flag value
+                    return isMarkedRunning
+                }
+            }
+            return isMarkedRunning
         }
     }
 
@@ -96,34 +128,61 @@ class LeodgeWidgetService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Service started")
+        Log.d(TAG, "Service started with startId: $startId")
         
         if (!isRunning) {
             isRunning = true
             try {
+                Log.d(TAG, "Starting foreground service...")
                 startForeground(NOTIFICATION_ID, createNotification())
                 startPolling()
+                Log.d(TAG, "Foreground service started successfully")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start foreground service", e)
                 // If we fail to start foreground, stop the service
+                isRunning = false
                 stopSelf()
                 return START_NOT_STICKY
             }
+        } else {
+            Log.d(TAG, "Service already running, ignoring start command")
         }
         
         // START_STICKY ensures the service is restarted if killed by the system
+        Log.d(TAG, "Returning START_STICKY")
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.d(TAG, "Task removed, but service continues running")
+        // Keep service running even when app is removed from recent tasks
+        // This is key for "always active" behavior
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "Service destroyed")
+        
+        // Stop polling
         stopPolling()
         isRunning = false
         
-        // Clear credentials when service is stopped
+        // Update service running flag
         val prefs = getSharedPreferences(PREFS_CREDENTIALS, Context.MODE_PRIVATE)
-        prefs.edit().clear().apply()
+        prefs.edit()
+            .putBoolean(KEY_SERVICE_RUNNING, false)
+            .apply()
+        
+        // Remove notification
+        try {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(NOTIFICATION_ID)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to remove notification", e)
+        }
+        
+        Log.d(TAG, "Service cleanup complete")
     }
 
     private fun createNotificationChannel() {
@@ -198,18 +257,24 @@ class LeodgeWidgetService : Service() {
         pollingRunnable = object : Runnable {
             override fun run() {
                 if (isRunning) {
+                    Log.d(TAG, "Polling cycle started")
                     fetchPortfolioData()
+                    Log.d(TAG, "Scheduling next poll in ${POLL_INTERVAL_MS}ms")
                     handler.postDelayed(this, POLL_INTERVAL_MS)
+                } else {
+                    Log.d(TAG, "Polling stopped, not scheduling next poll")
                 }
             }
         }
         pollingRunnable?.let {
+            Log.d(TAG, "Posting initial polling task")
             handler.post(it)
         }
     }
 
     private fun stopPolling() {
         pollingRunnable?.let {
+            Log.d(TAG, "Removing polling callbacks")
             handler.removeCallbacks(it)
             pollingRunnable = null
         }

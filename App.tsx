@@ -140,13 +140,18 @@ function App(): React.JSX.Element {
       await logger.onAppStart();
       const logPath = await getLogFilePath();
       await logger.info('LOG', `Log file: ${logPath}`);
-      
+
       // Check if background service is running
       if (Platform.OS === 'android' && LeodgeWidgetModule) {
         try {
           const isRunning = await LeodgeWidgetModule.isBackgroundServiceRunning();
           setBackgroundServiceRunning(isRunning);
-          await logger.info('SERVICE', `Background service running: ${isRunning}`);
+          await logger.info('SERVICE', `Background service status check: ${isRunning}`);
+          
+          // If service is marked as running, verify it's actually alive by checking if notification exists
+          if (isRunning) {
+            await logger.info('SERVICE', 'Service should be running in background');
+          }
         } catch (error) {
           await logger.error('SERVICE', 'Failed to check service status', error);
         }
@@ -235,17 +240,30 @@ function App(): React.JSX.Element {
 
     try {
       if (backgroundServiceRunning) {
+        await logger.info('SERVICE', 'Stopping background service...');
         await LeodgeWidgetModule.stopBackgroundService();
         setBackgroundServiceRunning(false);
-        await logger.info('SERVICE', 'Background service stopped');
+        await logger.info('SERVICE', 'Background service stop command sent');
       } else {
         if (!apiKey || !apiSecret) {
+          await logger.warn('SERVICE', 'Cannot start service: no credentials');
           showDetailedError('Service Error', 'Please save your API credentials first');
           return;
         }
+        
+        await logger.info('SERVICE', `Starting background service with key: ${apiKey.substring(0, 4)}...`);
         await LeodgeWidgetModule.startBackgroundService(apiKey, apiSecret);
         setBackgroundServiceRunning(true);
-        await logger.info('SERVICE', 'Background service started');
+        await logger.info('SERVICE', 'Background service start command sent');
+        
+        // Wait a moment and verify service is actually running
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const isActuallyRunning = await LeodgeWidgetModule.isBackgroundServiceRunning();
+        await logger.info('SERVICE', `Service verification check: ${isActuallyRunning}`);
+        
+        if (!isActuallyRunning) {
+          await logger.warn('SERVICE', 'Service started but verification failed');
+        }
       }
     } catch (error: any) {
       await logger.error('SERVICE', 'Failed to toggle background service', error);

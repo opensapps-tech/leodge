@@ -5,16 +5,20 @@ This document describes the implementation of a persistent background service fo
 
 **Note**: The background service polls the API every 15 seconds for near real-time updates.
 
+**Important**: The service is a FOREGROUND service, which means it runs independently of the app and continues even when the app is swiped away or closed. The service shows a persistent notification in the notification shade.
+
 ## Architecture
 
 ### Components
 
 1. **LeodgeWidgetService.kt** - Foreground Service
-   - Runs continuously in the background
-   - Polls Trading 212 API every 60 seconds
+   - Runs continuously in the background, independent of the app
+   - Polls Trading 212 API every 15 seconds
    - Updates the widget with new data
    - Shows a persistent notification (required for foreground services)
    - Uses `START_STICKY` to ensure automatic restart if killed by the system
+   - Handles `onTaskRemoved()` to continue running when app is swiped away
+   - Uses a service running flag to track state across app sessions
 
 2. **LeodgeWidgetModule.kt** - React Native Bridge
    - Exposes methods to start/stop the background service from JavaScript
@@ -121,11 +125,12 @@ This document describes the implementation of a persistent background service fo
 
 ### Behavior
 
-- **First Launch**: Service starts automatically when credentials are saved
-- **App Reopen**: Service status is checked and displayed
-- **Widget**: Updates every 60 seconds regardless of app state
-- **Battery**: Minimal impact - network call every 60 seconds
-- **Data Usage**: Very low - small JSON payload every 60 seconds
+- **Manual Start**: User must tap "Start Background Service" button
+- **App Closure**: Service continues running when app is swiped away or closed
+- **Foreground Service**: Service runs independently with persistent notification
+- **Widget**: Updates every 15 seconds regardless of app state
+- **Battery**: Minimal impact - network call every 15 seconds
+- **Data Usage**: Very low - small JSON payload every 15 seconds
 
 ## Benefits
 
@@ -144,9 +149,10 @@ This document describes the implementation of a persistent background service fo
    - No surprises - notification is always visible
 
 4. **Battery Efficient**
-   - Simple polling interval (60 seconds)
+   - Simple polling interval (15 seconds)
    - No continuous wake locks
    - Uses system networking stack efficiently
+   - Foreground service is still efficient for periodic tasks
 
 ## Technical Details
 
@@ -205,17 +211,52 @@ Service stores credentials separately from app's AsyncStorage:
 
 ## Troubleshooting
 
+### How to Verify Service is Running
+
+1. **Check Notification Shade**
+   - Look for "LEODGE Widget Active" notification
+   - This notification should always be present when service is running
+   - Cannot be dismissed (ongoing notification)
+
+2. **Check App Status**
+   - Open the app and look at "Background Service" section
+   - Status indicator should be green with "Running" text
+   - Button should say "Stop Background Service"
+
+3. **Check Log File**
+   - Look for log messages:
+     - "Service started with startId: X"
+     - "Foreground service started successfully"
+     - "Polling cycle started" (every 15 seconds)
+   - If you see these, service is running
+
+4. **Test with App Closed**
+   - Start the service
+   - Close the app (swipe from recent tasks)
+   - Wait 30 seconds
+   - Check if widget updates (should show new timestamp)
+   - Check notification shade (notification should still be there)
+
 ### Service Not Starting
-- Check that credentials are saved
-- Verify app has necessary permissions
-- Check device battery optimization settings
-- Ensure app is not restricted by OEM battery savers
+- Verify credentials are saved in app
+- Check app has necessary permissions (should be auto-granted)
+- Check device battery optimization settings (exclude app from optimization)
+- Ensure app is not restricted by OEM battery savers (Xiaomi, Samsung, etc.)
+- Check log file for "Failed to start foreground service" errors
+
+### Service Stops When App Closed
+- This should NOT happen with foreground service
+- Check notification shade - notification should still be there
+- If notification disappears, check log for "Service destroyed"
+- May be killed by aggressive battery optimization - exclude app from it
+- Some OEMs have aggressive task killers - whitelist the app
 
 ### Widget Not Updating
-- Check service status in app
-- Verify widget is added to home screen
-- Check notification shade for service notification
-- Restart app if needed
+- Verify service is running (check notification)
+- Check log for "Polling cycle started" messages
+- Ensure widget is added to home screen
+- Try removing and re-adding the widget
+- Check network connectivity
 
 ### Service Stops After Reboot
 - Verify `RECEIVE_BOOT_COMPLETED` permission
