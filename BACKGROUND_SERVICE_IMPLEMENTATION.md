@@ -3,6 +3,8 @@
 ## Overview
 This document describes the implementation of a persistent background service for the LEODGE Trading 212 Portfolio Monitor that keeps the widget always active, similar to how WhatsApp maintains its background connection.
 
+**Note**: The background service polls the API every 15 seconds for near real-time updates.
+
 ## Architecture
 
 ### Components

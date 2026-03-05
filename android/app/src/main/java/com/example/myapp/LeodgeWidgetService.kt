@@ -39,7 +39,7 @@ class LeodgeWidgetService : Service() {
         private const val TAG = "LeodgeWidgetService"
         private const val CHANNEL_ID = "leodge_widget_channel"
         private const val NOTIFICATION_ID = 1001
-        private const val POLL_INTERVAL_MS = 60000L // 60 seconds
+        private const val POLL_INTERVAL_MS = 15000L // 15 seconds
         private const val PREFS_NAME = "LeodgeWidgetPrefs"
         private const val PREFS_CREDENTIALS = "LeodgeCredentials"
         private const val KEY_API_KEY = "api_key"
@@ -88,7 +88,11 @@ class LeodgeWidgetService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
-        createNotificationChannel()
+        try {
+            createNotificationChannel()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create notification channel", e)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -96,8 +100,15 @@ class LeodgeWidgetService : Service() {
         
         if (!isRunning) {
             isRunning = true
-            startForeground(NOTIFICATION_ID, createNotification())
-            startPolling()
+            try {
+                startForeground(NOTIFICATION_ID, createNotification())
+                startPolling()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start foreground service", e)
+                // If we fail to start foreground, stop the service
+                stopSelf()
+                return START_NOT_STICKY
+            }
         }
         
         // START_STICKY ensures the service is restarted if killed by the system
@@ -134,23 +145,53 @@ class LeodgeWidgetService : Service() {
     }
 
     private fun createNotification(): Notification {
-        val intent = packageManager.getLaunchIntentForPackage(packageName)
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val intent = try {
+            packageManager.getLaunchIntentForPackage(packageName)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get launch intent", e)
+            null
+        }
+        
+        val pendingIntent = try {
+            intent?.let {
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    it,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create pending intent", e)
+            null
+        }
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("LEODGE Widget Active")
-            .setContentText("Portfolio monitoring running in background")
-            .setSmallIcon(android.R.drawable.ic_menu_info_details)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .build()
+        return try {
+            val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("LEODGE Widget Active")
+                .setContentText("Portfolio monitoring running in background")
+                .setSmallIcon(android.R.drawable.ic_menu_info_details)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            
+            // Only set content intent if we successfully created one
+            pendingIntent?.let {
+                builder.setContentIntent(it)
+            }
+            
+            builder.build()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create notification", e)
+            // Create a simple notification if the main one fails
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("LEODGE")
+                .setContentText("Widget service running")
+                .setSmallIcon(android.R.drawable.ic_menu_info_details)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
+        }
     }
 
     private fun startPolling() {

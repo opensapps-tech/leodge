@@ -11,7 +11,7 @@
 - **Trading 212 API Integration** - Real-time portfolio monitoring via Trading 212's REST API
 - **Android Home Screen Widget** - Persistent widget displaying current portfolio value
 - **Background Service** - Foreground service keeps widget updated even when app is closed (like WhatsApp)
-- **Auto-Refresh Polling** - Automatic portfolio updates every 60 seconds
+- **Auto-Refresh Polling** - Automatic portfolio updates every 15 seconds
 - **Secure Credential Storage** - API keys stored locally using AsyncStorage
 - **Dark Theme UI** - Modern dark interface with green accent colors
 - **Error Handling** - Detailed error reporting and logging
@@ -119,7 +119,7 @@ The app includes a persistent foreground service that keeps the widget updated e
 ### How It Works
 
 1. **Foreground Service** - Runs continuously in the background with a notification
-2. **API Polling** - Fetches Trading 212 data every 60 seconds
+2. **API Polling** - Fetches Trading 212 data every 15 seconds
 3. **Widget Updates** - Automatically updates the home screen widget with new data
 4. **Boot Receiver** - Restarts the service automatically after device reboot
 
@@ -134,9 +134,10 @@ The app includes a persistent foreground service that keeps the widget updated e
 ### Usage
 
 1. Enter your Trading 212 API credentials
-2. Save credentials - the background service starts automatically
-3. Add the widget to your home screen
-4. The widget will update every 60 seconds, even when the app is closed
+2. Save credentials
+3. Tap "Start Background Service" to enable persistent widget updates
+4. Add the widget to your home screen
+5. The widget will update every 15 seconds, even when the app is closed
 
 To stop the background service:
 - Use the "Stop Background Service" button in the app

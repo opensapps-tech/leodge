@@ -184,27 +184,12 @@ function App(): React.JSX.Element {
         isPollingStarted.current = true;
         await logger.info('POLL', `Starting polling - API key: ${apiKey.substring(0, 4)}...`);
         
-        // Initial fetch first
-        try {
-          await fetchPortfolioData();
-          
-          // Start background service on Android (after first fetch completes)
-          if (Platform.OS === 'android' && LeodgeWidgetModule) {
-            try {
-              await LeodgeWidgetModule.startBackgroundService(apiKey, apiSecret);
-              setBackgroundServiceRunning(true);
-              await logger.info('SERVICE', 'Background service started');
-            } catch (error) {
-              await logger.error('SERVICE', 'Failed to start background service', error);
-            }
-          }
-        } catch (error) {
-          await logger.error('POLL', 'Initial fetch failed, service not started', error);
-        }
+        // Initial fetch
+        await fetchPortfolioData();
         
-        // Start interval (for app UI updates)
-        pollingIntervalRef.current = setInterval(fetchPortfolioData, 60000);
-        await logger.info('POLL', 'Polling interval started (60s)');
+        // Start interval (for app UI updates only)
+        pollingIntervalRef.current = setInterval(fetchPortfolioData, 15000);
+        await logger.info('POLL', 'Polling interval started (15s)');
       }
     };
     
@@ -253,16 +238,18 @@ function App(): React.JSX.Element {
         await LeodgeWidgetModule.stopBackgroundService();
         setBackgroundServiceRunning(false);
         await logger.info('SERVICE', 'Background service stopped');
-      } else if (apiKey && apiSecret) {
+      } else {
+        if (!apiKey || !apiSecret) {
+          showDetailedError('Service Error', 'Please save your API credentials first');
+          return;
+        }
         await LeodgeWidgetModule.startBackgroundService(apiKey, apiSecret);
         setBackgroundServiceRunning(true);
         await logger.info('SERVICE', 'Background service started');
-      } else {
-        showDetailedError('Service Error', 'Please save credentials first');
       }
-    } catch (error) {
+    } catch (error: any) {
       await logger.error('SERVICE', 'Failed to toggle background service', error);
-      showDetailedError('Service Error', `Failed: ${error}`);
+      showDetailedError('Service Error', `Failed: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -410,7 +397,7 @@ function App(): React.JSX.Element {
             </TouchableOpacity>
             <Text style={styles.serviceDescription}>
               {backgroundServiceRunning 
-                ? 'Widget will update automatically every 60 seconds, even when app is closed'
+                ? 'Widget will update automatically every 15 seconds, even when app is closed'
                 : 'Start this service to keep your widget updated when app is closed'}
             </Text>
           </View>
