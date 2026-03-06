@@ -9,7 +9,8 @@ class LeodgePackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
         return listOf(
             LeodgeWidgetModule(reactContext),
-            LeodgeLoggerModule(reactContext)
+            LeodgeLoggerModule(reactContext),
+            LeodgeServiceModule(reactContext)
         )
     }
 

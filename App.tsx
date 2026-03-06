@@ -14,18 +14,20 @@ import {
   Modal,
   ScrollView,
   Platform,
+  Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeModules } from 'react-native';
 import logger from './src/utils/Logger';
 
 // Native module imports
-const { LeodgeWidgetModule, LeodgeLoggerModule } = NativeModules;
+const { LeodgeWidgetModule, LeodgeLoggerModule, LeodgeServiceModule } = NativeModules;
 
 // Storage keys
 const STORAGE_KEYS = {
   API_KEY: '@leodge_api_key',
   API_SECRET: '@leodge_api_secret',
+  WIDGET_SERVICE_ENABLED: '@leodge_widget_service_enabled',
 };
 
 // Trading 212 API configuration
@@ -128,6 +130,8 @@ function App(): React.JSX.Element {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [detailedError, setDetailedError] = useState('');
   const [rawJson, setRawJson] = useState('');
+  const [serviceRunning, setServiceRunning] = useState(false);
+  const [autoStartEnabled, setAutoStartEnabled] = useState(true);
   
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isPollingStarted = useRef(false);
@@ -139,6 +143,25 @@ function App(): React.JSX.Element {
       await logger.onAppStart();
       const logPath = await getLogFilePath();
       await logger.info('LOG', `Log file: ${logPath}`);
+
+      // Initialize widget service state
+      if (Platform.OS === 'android' && LeodgeServiceModule) {
+        try {
+          const running = await LeodgeServiceModule.isServiceRunning();
+          setServiceRunning(running);
+
+          const autoStart = await LeodgeServiceModule.getAutoStartEnabled();
+          setAutoStartEnabled(autoStart);
+
+          // Load saved preference
+          const savedServiceEnabled = await AsyncStorage.getItem(STORAGE_KEYS.WIDGET_SERVICE_ENABLED);
+          if (savedServiceEnabled === 'true') {
+            await startWidgetService();
+          }
+        } catch (error) {
+          await logger.error('SERVICE', 'Failed to init service state', error);
+        }
+      }
     };
     init();
   }, []);
@@ -212,6 +235,60 @@ function App(): React.JSX.Element {
     } catch (error: any) {
       await logger.error('CRED', 'Failed to save credentials', error);
       showDetailedError('Storage Error', `Failed: ${error.message}`);
+    }
+  };
+
+  // Widget service control functions
+  const startWidgetService = async () => {
+    if (Platform.OS !== 'android' || !LeodgeServiceModule) {
+      showDetailedError('Service Error', 'Widget service is only available on Android');
+      return;
+    }
+
+    try {
+      await logger.info('SERVICE', 'Starting widget service...');
+      await LeodgeServiceModule.startService();
+      await AsyncStorage.setItem(STORAGE_KEYS.WIDGET_SERVICE_ENABLED, 'true');
+      setServiceRunning(true);
+      await logger.info('SERVICE', 'Widget service started successfully');
+    } catch (error: any) {
+      await logger.error('SERVICE', 'Failed to start service', error);
+      showDetailedError('Service Error', `Failed to start: ${error.message}`);
+    }
+  };
+
+  const stopWidgetService = async () => {
+    if (Platform.OS !== 'android' || !LeodgeServiceModule) return;
+
+    try {
+      await logger.info('SERVICE', 'Stopping widget service...');
+      await LeodgeServiceModule.stopService();
+      await AsyncStorage.setItem(STORAGE_KEYS.WIDGET_SERVICE_ENABLED, 'false');
+      setServiceRunning(false);
+      await logger.info('SERVICE', 'Widget service stopped');
+    } catch (error: any) {
+      await logger.error('SERVICE', 'Failed to stop service', error);
+      showDetailedError('Service Error', `Failed to stop: ${error.message}`);
+    }
+  };
+
+  const toggleWidgetService = async () => {
+    if (serviceRunning) {
+      await stopWidgetService();
+    } else {
+      await startWidgetService();
+    }
+  };
+
+  const toggleAutoStart = async (enabled: boolean) => {
+    if (Platform.OS !== 'android' || !LeodgeServiceModule) return;
+
+    try {
+      await LeodgeServiceModule.setAutoStartEnabled(enabled);
+      setAutoStartEnabled(enabled);
+      await logger.info('SERVICE', `Auto-start ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (error: any) {
+      await logger.error('SERVICE', 'Failed to set auto-start', error);
     }
   };
 
@@ -327,6 +404,49 @@ function App(): React.JSX.Element {
             <Text style={styles.saveButtonText}>Save Credentials</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Widget Service Section */}
+        {Platform.OS === 'android' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Widget Background Service</Text>
+            <Text style={styles.serviceDescription}>
+              Keep widget always active with real-time updates, even when app is closed
+            </Text>
+
+            <View style={styles.serviceRow}>
+              <View style={styles.serviceStatus}>
+                <View style={[
+                  styles.statusDot,
+                  serviceRunning && styles.statusDotActive,
+                ]} />
+                <Text style={styles.statusValue}>
+                  {serviceRunning ? 'Service Active' : 'Service Stopped'}
+                </Text>
+              </View>
+
+              <Switch
+                value={serviceRunning}
+                onValueChange={toggleWidgetService}
+                trackColor={{ false: '#333', true: '#00d4aa' }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <View style={styles.autoStartRow}>
+              <Text style={styles.autoStartText}>Auto-start on boot</Text>
+              <Switch
+                value={autoStartEnabled}
+                onValueChange={toggleAutoStart}
+                trackColor={{ false: '#333', true: '#00d4aa' }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <Text style={styles.serviceNote}>
+              ℹ️ A persistent notification will be shown while service is running
+            </Text>
+          </View>
+        )}
 
         {/* Portfolio Value Section */}
         <View style={styles.section}>
@@ -455,6 +575,12 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 12, color: '#ccc', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 18 },
   modalCloseButton: { backgroundColor: '#00d4aa', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 16 },
   modalCloseButtonText: { color: '#1a1a2e', fontSize: 16, fontWeight: '600' },
+  serviceDescription: { fontSize: 12, color: '#888', marginBottom: 12, lineHeight: 16 },
+  serviceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  serviceStatus: { flexDirection: 'row', alignItems: 'center' },
+  autoStartRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  autoStartText: { fontSize: 14, color: '#fff' },
+  serviceNote: { fontSize: 11, color: '#666', fontStyle: 'italic', marginTop: 4 },
 });
 
 export default App;
