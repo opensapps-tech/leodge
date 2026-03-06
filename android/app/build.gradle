@@ -75,6 +75,9 @@ dependencies {
     // Core React Native (version managed by RN Gradle Plugin)
     implementation("com.facebook.react:react-android")
 
+    // WorkManager for reliable periodic widget updates
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
