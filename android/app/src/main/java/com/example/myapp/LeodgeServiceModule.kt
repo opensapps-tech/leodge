@@ -106,6 +106,20 @@ class LeodgeServiceModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
+    /**
+     * Update the service notification with new portfolio data.
+     * This allows the notification to show live portfolio values.
+     */
+    @ReactMethod
+    fun updateNotification(totalValue: String, cash: String, invested: String, updated: String, promise: Promise) {
+        try {
+            LeodgeWidgetService.updateNotification(reactContext, totalValue, cash, invested, updated)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("NOTIFICATION_ERROR", "Failed to update notification: ${e.message}", e)
+        }
+    }
+
     override fun getName(): String = NAME
 
     override fun getConstants(): Map<String, Any>? {

@@ -96,14 +96,22 @@ async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ tota
   }
 }
 
-// Update Android widget
+// Update Android widget and service notification
 async function updateWidget(totalValue: string, cash: string, invested: string, updated: string): Promise<void> {
   await logger.info('WIDGET', `Updating widget with value: £${totalValue}`);
-  if (Platform.OS === 'android' && LeodgeWidgetModule) {
+  if (Platform.OS === 'android') {
     try {
-      await LeodgeWidgetModule.updateWidget(totalValue, cash, invested, updated);
+      // Update the home screen widget
+      if (LeodgeWidgetModule) {
+        await LeodgeWidgetModule.updateWidget(totalValue, cash, invested, updated);
+      }
+
+      // Update the service notification to show live data
+      if (LeodgeServiceModule) {
+        await LeodgeServiceModule.updateNotification(totalValue, cash, invested, updated);
+      }
     } catch (error: any) {
-      await logger.error('WIDGET', 'Widget update failed', error);
+      await logger.error('WIDGET', 'Widget/Notification update failed', error);
     }
   }
 }
@@ -443,7 +451,7 @@ function App(): React.JSX.Element {
             </View>
 
             <Text style={styles.serviceNote}>
-              ℹ️ A persistent notification will be shown while service is running
+              ℹ️ Persistent notification shows live portfolio values in notification area
             </Text>
           </View>
         )}
