@@ -211,7 +211,7 @@ class LeodgeWidgetService : Service() {
             .setContentIntent(contentIntent)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCustomContentView(collapsedView)
             .setCustomBigContentView(expandedView)
@@ -237,7 +237,7 @@ class LeodgeWidgetService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "LEODGE Portfolio Service",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Shows live portfolio updates in the notification area"
                 setShowBadge(false)

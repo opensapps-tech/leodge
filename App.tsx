@@ -14,6 +14,7 @@ import {
   Modal,
   ScrollView,
   Platform,
+  PermissionsAndroid,
   Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -41,6 +42,29 @@ function createBasicAuthHeader(apiKey: string, apiSecret: string): string {
 }
 
 // Fetch portfolio data from Trading 212 API
+// Request notification permission on Android 13+
+async function requestNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === 'android' && Platform.Version >= 33) {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        {
+          title: 'LEODGE Notification Permission',
+          message: 'LEODGE needs notification permission to show live portfolio updates.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn('Notification permission error:', err);
+      return false;
+    }
+  }
+  return true;
+}
+
 async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ total: number; cash: number; invested: number; rawJson: string }> {
   const url = `${API_BASE_URL}/api/v0/equity/account/summary`;
   const authHeader = createBasicAuthHeader(apiKey, apiSecret);
@@ -237,6 +261,16 @@ function App(): React.JSX.Element {
       await AsyncStorage.setItem(STORAGE_KEYS.API_KEY, apiKey.trim());
       await AsyncStorage.setItem(STORAGE_KEYS.API_SECRET, apiSecret.trim());
       await logger.onCredentialsSaved();
+      // Request notification permission and start background service
+      await requestNotificationPermission();
+      if (LeodgeServiceModule) {
+        try {
+          await LeodgeServiceModule.startService();
+          await logger.info('SERVICE', 'Background service started');
+        } catch (e) {
+          await logger.error('SERVICE', 'Failed to start service', e);
+        }
+      }
       // Force re-render to trigger polling start
       setApiKey(apiKey.trim());
       setApiSecret(apiSecret.trim());
@@ -323,6 +357,19 @@ function App(): React.JSX.Element {
       setErrorMessage(null);
       
       // Update widget
+      // Also update the persistent notification via service
+      if (LeodgeServiceModule) {
+        try {
+          await LeodgeServiceModule.updateNotification(
+            total.toFixed(2),
+            cash.toFixed(2),
+            invested.toFixed(2),
+            new Date().toLocaleTimeString()
+          );
+        } catch (e) {
+          await logger.error('NOTIFY', 'Failed to update notification', e);
+        }
+      }
       await updateWidget(
       total.toFixed(2),
       cash.toFixed(2),
