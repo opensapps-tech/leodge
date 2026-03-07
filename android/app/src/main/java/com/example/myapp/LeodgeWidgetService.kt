@@ -7,307 +7,169 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
-import android.os.PowerManager
-import android.widget.RemoteViews
+import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import java.util.concurrent.TimeUnit
+import java.io.File
+import java.io.FileWriter
 
-/**
- * LeodgeWidgetService - Foreground service that keeps the widget always active.
- *
- * This service runs continuously in the foreground with a persistent notification
- * that displays live portfolio data in a compact area, similar to how WhatsApp
- * keeps its connection alive. The notification shows portfolio value, cash, and
- * invested amounts using custom layouts for both collapsed and expanded views.
- */
 class LeodgeWidgetService : Service() {
 
     companion object {
-        const val TAG = "LeodgeWidgetService"
-        const val CHANNEL_ID = "leodge_widget_channel"
+        const val TAG = "LeodgeWidget"
+        const val CHANNEL_ID = "leodge_channel"
         const val NOTIFICATION_ID = 1001
-        const val ACTION_START = "com.example.myapp.ACTION_START_SERVICE"
-        const val ACTION_STOP = "com.example.myapp.ACTION_STOP_SERVICE"
-        const val ACTION_UPDATE_NOTIFICATION = "com.example.myapp.ACTION_UPDATE_NOTIFICATION"
-        const val WORK_TAG = "leodge_widget_update_work"
-
-        // SharedPreferences keys for notification data
-        private const val PREFS_NAME = "LeodgeWidgetPrefs"
-        private const val KEY_TOTAL_VALUE = "total_value"
-        private const val KEY_CASH = "cash"
-        private const val KEY_INVESTED = "invested"
-        private const val KEY_UPDATED = "updated"
-
-        // Update interval - 15 minutes (minimum for WorkManager periodic work)
-        const val UPDATE_INTERVAL_MINUTES = 15L
-
+        const val ACTION_START = "com.example.myapp.START"
+        const val ACTION_STOP = "com.example.myapp.STOP"
+        const val ACTION_UPDATE = "com.example.myapp.UPDATE"
+        
+        const val PREFS_NAME = "LeodgePrefs"
+        const val KEY_TOTAL = "total_value"
+        const val KEY_CASH = "cash"
+        const val KEY_INVESTED = "invested"
+        
         @Volatile
         var isRunning = false
             private set
 
-        private var serviceInstance: LeodgeWidgetService? = null
-
         fun start(context: Context) {
-            val intent = Intent(context, LeodgeWidgetService::class.java).apply {
-                action = ACTION_START
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            val intent = Intent(context, LeodgeWidgetService::class.java).apply { action = ACTION_START }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
+            else context.startService(intent)
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, LeodgeWidgetService::class.java).apply {
-                action = ACTION_STOP
-            }
+            val intent = Intent(context, LeodgeWidgetService::class.java).apply { action = ACTION_STOP }
             context.startService(intent)
         }
 
-        /**
-         * Update the notification with new portfolio data.
-         * Can be called from React Native when portfolio data changes.
-         */
-        fun updateNotification(context: Context, totalValue: String, cash: String, invested: String, updated: String) {
-            // Save to SharedPreferences for persistence
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString(KEY_TOTAL_VALUE, totalValue)
+        fun updateData(context: Context, total: String, cash: String, invested: String) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(KEY_TOTAL, total)
                 .putString(KEY_CASH, cash)
                 .putString(KEY_INVESTED, invested)
-                .putString(KEY_UPDATED, updated)
                 .apply()
-
-            // If service is running, update the notification immediately
-            serviceInstance?.refreshNotification()
+            
+            // If service running, update notification
+            if (isRunning) {
+                val intent = Intent(context, LeodgeWidgetService::class.java).apply { action = ACTION_UPDATE }
+                context.startService(intent)
+            }
         }
     }
 
-    private var wakeLock: PowerManager.WakeLock? = null
     private lateinit var notificationManager: NotificationManager
+    private val handler = Handler(Looper.getMainLooper())
+    private var updateRunnable: Runnable? = null
 
     override fun onCreate() {
         super.onCreate()
+        log("Service onCreate")
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        createNotificationChannel()
-        serviceInstance = this
+        createChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP -> {
-                stopSelf()
-                return START_NOT_STICKY
+        log("Service onStartCommand: ${intent?.action}")
+        
+        try {
+            when (intent?.action) {
+                ACTION_STOP -> {
+                    log("Stopping service")
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+                ACTION_UPDATE -> {
+                    log("Updating notification")
+                    updateNotification()
+                    return START_STICKY
+                }
+                else -> {
+                    log("Starting foreground")
+                    startForeground(NOTIFICATION_ID, createNotification())
+                    isRunning = true
+                    scheduleUpdates()
+                }
             }
-            ACTION_UPDATE_NOTIFICATION -> {
-                // Update notification with latest data
-                refreshNotification()
-            }
-            else -> {
-                startForegroundService()
-                scheduleWidgetUpdates()
-                acquireWakeLock()
-            }
+        } catch (e: Exception) {
+            log("ERROR in onStartCommand: ${e.message}\n${Log.getStackTraceString(e)}")
         }
-
-        // START_STICKY ensures the service restarts if killed by the system
+        
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        super.onDestroy()
+        log("Service onDestroy")
         isRunning = false
-        serviceInstance = null
-        releaseWakeLock()
-        cancelWidgetUpdates()
-
-        // Restart service if it was killed (for non-user stops)
-        if (!isUserStopped()) {
-            start(this)
-        }
+        updateRunnable?.let { handler.removeCallbacks(it) }
+        super.onDestroy()
     }
 
-    private fun startForegroundService() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                val basicNotification = NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_menu_info_details)
-                    .setContentTitle("LEODGE needs permission")
-                    .setContentText("Tap to enable notifications")
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setAutoCancel(true)
-                    .build()
-                startForeground(NOTIFICATION_ID, basicNotification)
-                isRunning = true
-                return
-            }
-        }
-        val notification = createNotification()
-        startForeground(NOTIFICATION_ID, notification)
-        isRunning = true
-    }
-
-    /**
-     * Create a rich custom notification with portfolio details.
-     * Uses custom RemoteViews for both collapsed and expanded states.
-     */
-    private fun createNotification(): Notification {
-        // Get latest portfolio data
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val totalValue = prefs.getString(KEY_TOTAL_VALUE, null)
-        val cash = prefs.getString(KEY_CASH, null)
-        val invested = prefs.getString(KEY_INVESTED, null)
-        val updated = prefs.getString(KEY_UPDATED, null)
-
-        // Format display values
-        val displayTotal = if (totalValue != null) "£$totalValue" else "£--.--"
-        val displayCash = if (cash != null) "£$cash" else "£--.--"
-        val displayInvested = if (invested != null) "£$invested" else "£--.--"
-        val displayUpdated = if (updated != null) "Updated: $updated" else "Updated: --"
-
-        // Create intent to open the app when notification is tapped
-        val contentIntent = packageManager.getLaunchIntentForPackage(packageName)?.let {
-            PendingIntent.getActivity(
-                this,
-                0,
-                it,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-        }
-
-        // Create stop action
-        val stopIntent = Intent(this, LeodgeWidgetService::class.java).apply {
-            action = ACTION_STOP
-        }
-        val stopPendingIntent = PendingIntent.getService(
-            this,
-            1,
-            stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Create refresh action
-        val refreshIntent = Intent(this, LeodgeWidget::class.java).apply {
-            action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
-        }
-        val refreshPendingIntent = PendingIntent.getBroadcast(
-            this,
-            2,
-            refreshIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Build custom RemoteViews for expanded notification
-        val expandedView = RemoteViews(packageName, R.layout.notification_leodge).apply {
-            setTextViewText(R.id.notification_total, displayTotal)
-            setTextViewText(R.id.notification_cash, displayCash)
-            setTextViewText(R.id.notification_invested, displayInvested)
-            setTextViewText(R.id.notification_updated, displayUpdated)
-        }
-
-        // Build custom RemoteViews for collapsed notification
-        val collapsedView = RemoteViews(packageName, R.layout.notification_leodge_collapsed).apply {
-            setTextViewText(R.id.notification_total_collapsed, displayTotal)
-        }
-
-        // Build the notification with custom views
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_info_details)
-            .setContentIntent(contentIntent)
-            .setOngoing(true)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setCustomContentView(collapsedView)
-            .setCustomBigContentView(expandedView)
-            // Actions
-            .addAction(android.R.drawable.ic_menu_rotate, "Refresh", refreshPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
-            .build()
-    }
-
-    /**
-     * Refresh the notification with current data.
-     * Called when portfolio data changes.
-     */
-    internal fun refreshNotification() {
-        if (isRunning) {
-            val notification = createNotification()
-            notificationManager.notify(NOTIFICATION_ID, notification)
-        }
-    }
-
-    private fun createNotificationChannel() {
+    private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "LEODGE Portfolio Service",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Shows live portfolio updates in the notification area"
+            val channel = NotificationChannel(CHANNEL_ID, "LEODGE", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Portfolio tracker"
                 setShowBadge(false)
-                enableLights(false)
-                enableVibration(false)
             }
-
             notificationManager.createNotificationChannel(channel)
         }
     }
 
-    private fun scheduleWidgetUpdates() {
-        // Schedule periodic widget updates using WorkManager
-        val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
-            UPDATE_INTERVAL_MINUTES,
-            TimeUnit.MINUTES
-        ).build()
+    private fun createNotification(): Notification {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val total = prefs.getString(KEY_TOTAL, "0.00") ?: "0.00"
+        
+        log("Creating notification with total: £$total")
 
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            WORK_TAG,
-            ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_info_details)
+            .setContentTitle("LEODGE")
+            .setContentText("Portfolio: £$total")
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
     }
 
-    private fun cancelWidgetUpdates() {
-        WorkManager.getInstance(this).cancelUniqueWork(WORK_TAG)
-    }
-
-    private fun acquireWakeLock() {
+    private fun updateNotification() {
         try {
-            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = powerManager.newWakeLock(
-                PowerManager.PARTIAL_WAKE_LOCK,
-                "Leodge::WidgetWakeLock"
-            ).apply {
-                setReferenceCounted(false)
-                acquire(10 * 60 * 1000L) // 10 minutes timeout, will re-acquire
-            }
+            notificationManager.notify(NOTIFICATION_ID, createNotification())
+            log("Notification updated")
         } catch (e: Exception) {
-            e.printStackTrace()
+            log("ERROR updating notification: ${e.message}")
         }
     }
 
-    private fun releaseWakeLock() {
-        wakeLock?.let {
-            if (it.isHeld) {
-                it.release()
+    private fun scheduleUpdates() {
+        updateRunnable = object : Runnable {
+            override fun run() {
+                if (isRunning) {
+                    log("Scheduled update tick")
+                    updateNotification()
+                    handler.postDelayed(this, 60000) // Update every minute
+                }
             }
         }
-        wakeLock = null
+        handler.post(updateRunnable!!)
     }
 
-    private fun isUserStopped(): Boolean {
-        // Check SharedPreferences to determine if user explicitly stopped the service
-        val prefs = getSharedPreferences("LeodgeServicePrefs", Context.MODE_PRIVATE)
-        return prefs.getBoolean("user_stopped", false)
+    private fun log(msg: String) {
+        try {
+            Log.d(TAG, msg)
+            // Also write to Downloads/leodge_crash.log for user access
+            val downloadsDir = getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+            val logFile = File(downloadsDir, "leodge.log")
+            FileWriter(logFile, true).use { it.appendLine("${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(java.util.Date())} $msg") }
+        } catch (e: Exception) {
+            Log.e(TAG, "Log failed: ${e.message}")
+        }
     }
 }
