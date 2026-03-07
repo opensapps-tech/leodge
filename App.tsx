@@ -41,28 +41,34 @@ function createBasicAuthHeader(apiKey: string, apiSecret: string): string {
   return `Basic ${base64Credentials}`;
 }
 
-// Fetch portfolio data from Trading 212 API
 // Request notification permission on Android 13+
 async function requestNotificationPermission(): Promise<boolean> {
-  if (Platform.OS === 'android' && Platform.Version >= 33) {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-        {
-          title: 'LEODGE Notification Permission',
-          message: 'LEODGE needs notification permission to show live portfolio updates.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn('Notification permission error:', err);
-      return false;
-    }
+  try {
+    if (Platform.OS !== 'android') return true;
+    
+    const version = Number(Platform.Version);
+    if (isNaN(version) || version < 33) return true;
+    
+    // Check if we already have permission
+    const result = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+    if (result) return true;
+    
+    // Request permission
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      {
+        title: 'LEODGE Notification Permission',
+        message: 'LEODGE needs notification permission to show live portfolio updates.',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      }
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  } catch (err) {
+    console.warn('Notification permission error:', err);
+    return false; // Don't crash, just return false
   }
-  return true;
 }
 
 async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ total: number; cash: number; invested: number; rawJson: string }> {
