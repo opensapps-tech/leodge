@@ -137,6 +137,20 @@ class LeodgeWidgetService : Service() {
     }
 
     private fun startForegroundService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                val basicNotification = NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_menu_info_details)
+                    .setContentTitle("LEODGE needs permission")
+                    .setContentText("Tap to enable notifications")
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setAutoCancel(true)
+                    .build()
+                startForeground(NOTIFICATION_ID, basicNotification)
+                isRunning = true
+                return
+            }
+        }
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
         isRunning = true
@@ -237,7 +251,7 @@ class LeodgeWidgetService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "LEODGE Portfolio Service",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Shows live portfolio updates in the notification area"
                 setShowBadge(false)
