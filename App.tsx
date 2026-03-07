@@ -14,7 +14,6 @@ import {
   Modal,
   ScrollView,
   Platform,
-  PermissionsAndroid,
   Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -42,34 +41,6 @@ function createBasicAuthHeader(apiKey: string, apiSecret: string): string {
 }
 
 // Request notification permission on Android 13+
-async function requestNotificationPermission(): Promise<boolean> {
-  try {
-    if (Platform.OS !== 'android') return true;
-    
-    const version = Number(Platform.Version);
-    if (isNaN(version) || version < 33) return true;
-    
-    // Check if we already have permission
-    const result = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-    if (result) return true;
-    
-    // Request permission
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-      {
-        title: 'LEODGE Notification Permission',
-        message: 'LEODGE needs notification permission to show live portfolio updates.',
-        buttonNeutral: 'Ask Me Later',
-        buttonNegative: 'Cancel',
-        buttonPositive: 'OK',
-      }
-    );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
-  } catch (err) {
-    console.warn('Notification permission error:', err);
-    return false; // Don't crash, just return false
-  }
-}
 
 async function fetchPortfolio(apiKey: string, apiSecret: string): Promise<{ total: number; cash: number; invested: number; rawJson: string }> {
   const url = `${API_BASE_URL}/api/v0/equity/account/summary`;
@@ -268,8 +239,7 @@ function App(): React.JSX.Element {
       await AsyncStorage.setItem(STORAGE_KEYS.API_SECRET, apiSecret.trim());
       await logger.onCredentialsSaved();
       // Request notification permission and start background service
-      await requestNotificationPermission();
-      if (LeodgeServiceModule) {
+            if (LeodgeServiceModule) {
         try {
           await LeodgeServiceModule.startService();
           await logger.info('SERVICE', 'Background service started');
