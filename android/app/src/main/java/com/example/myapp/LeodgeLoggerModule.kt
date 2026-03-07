@@ -1,6 +1,7 @@
 package com.example.myapp
 
 import android.content.Context
+import android.os.Environment
 import com.facebook.react.bridge.*
 import com.facebook.react.module.annotations.ReactModule
 import java.io.File
@@ -17,8 +18,9 @@ class LeodgeLoggerModule(private val reactContext: ReactApplicationContext) :
     }
 
     private fun getLogFile(): File {
-        val documentsDir = reactContext.filesDir
-        return File(documentsDir, LOG_FILE_NAME)
+        // Use public Downloads folder so user can access it
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        return File(downloadsDir, LOG_FILE_NAME)
     }
 
     @ReactMethod

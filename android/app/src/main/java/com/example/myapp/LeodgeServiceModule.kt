@@ -113,7 +113,8 @@ class LeodgeServiceModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun updateNotification(totalValue: String, cash: String, invested: String, updated: String, promise: Promise) {
         try {
-            LeodgeWidgetService.updateNotification(reactContext, totalValue, cash, invested, updated)
+            // Only pass total - notification is simplified
+            LeodgeWidgetService.updateData(reactContext, totalValue)
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("NOTIFICATION_ERROR", "Failed to update notification: ${e.message}", e)
@@ -124,7 +125,7 @@ class LeodgeServiceModule(private val reactContext: ReactApplicationContext) :
 
     override fun getConstants(): Map<String, Any>? {
         return hashMapOf(
-            "UPDATE_INTERVAL_MINUTES" to LeodgeWidgetService.UPDATE_INTERVAL_MINUTES
+            "UPDATE_INTERVAL_MINUTES" to 1
         )
     }
 }
